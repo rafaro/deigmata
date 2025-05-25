@@ -1,0 +1,14 @@
+{
+
+  "recordNotFound": "Registro {id} não encontrado",
+  "alreadyRegistered": "Este {desc} já está cadastrado.",
+  "noRecordRemoved": "Nenhum registro removido",
+  "invalidCredentials": "Usuário ou senha incorreto.",
+  "authNotConfirmed": "Sua autenticação não foi confirmada.",
+  "email": {
+    "alreadyRegistered": "Este email já está cadastrado.",
+    "alreadyConfirmed": "Seu email já está confirmado.",
+    "passwordResetFailed": "Não foi possível enviar a alteração de senha para este email."
+  }
+  
+}

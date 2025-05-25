@@ -1,0 +1,13 @@
+server:
+  port: 3000
+  cors: true
+  
+origin:
+  - 'http://localhost:80'
+  - 'http://localhost'
+  - 'http://localhost:8080'  
+  - 'http://localhost:9000'
+
+jwt:
+  expiresIn: 3600
+  secret: 'teste'
