@@ -1,4 +1,46 @@
 
+# Deigmata
+
+**Deigmata** is a research-driven project focused on enhancing the **visual exploration of knowledge graphs** through interactive and user-centered methodologies. As the volume and complexity of structured semantic data grow, interpreting and extracting meaningful insights from knowledge graphs becomes increasingly challenging. This project proposes a **methodological process** that leverages **exploratory visualization techniques** to improve interaction and facilitate insight generation.
+
+## Objectives
+
+- Facilitate interpretation of large-scale knowledge graphs
+- Enhance user interaction with semantic data through visualization
+- Develop and validate a methodological process focused on the user journey
+
+## Methodology
+
+This project follows the **Design Science Research (DSR)** approach and is divided into two main stages:
+
+### 1. Systematic Literature Review (SLR)
+- 497 studies analyzed
+- 77 studies selected for in-depth analysis
+- Identified **7 recurring approaches** for knowledge graph visualization
+- Mapped **20 tools** with potential for future testing
+
+### 2. Semi-Structured Interviews
+- Conducted **14 interviews** with experts and users
+- Used to validate and improve the initial model
+- Resulted in a **refined and validated methodological process**
+
+## Results
+
+- A consolidated methodological model for interactive visual exploration of knowledge graphs
+- A categorized list of relevant tools and approaches from the literature
+- Insights into user needs and practices when working with semantic data
+
+## Future Work
+
+- Evaluate and test the mapped tools for compatibility with the proposed model
+- Implement prototypes based on the validated methodology
+- Extend the model with feedback from further usability studies
+
+---
+
+**Deigmata** serves as a foundation for developing advanced, user-centered visualization strategies that make knowledge graphs more **accessible**, **insightful**, and **usable**.
+
+
 # Setup Instructions
 
 ## 1. Install a Relational Database Management System (RDBMS)
