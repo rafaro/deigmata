@@ -13,7 +13,7 @@ export class ProjectRepository extends Repository<Project> {
   async getAll(user: User): Promise<Project[]> {
     const q = this.createQueryBuilder('p');
     q.orWhere("p.public = 'Y'");
-    q.orWhere('p.id = :id', { id: user.id });
+    q.orWhere('p.ownerid = :id', { id: user.id });
 
 
     const obj = await q.getMany();
@@ -23,7 +23,7 @@ export class ProjectRepository extends Repository<Project> {
   async getById(id: number, user: User): Promise<Project> {
     const q = this.createQueryBuilder('p');
     q.andWhere('p.id = :id', { id });
-    q.andWhere("(p.public = 'Y' or p.id = :id)", { id: user.id });
+    q.andWhere("((p.public = 'Y' and p.id = :id) or (p.ownerid = :iduser))", { id, iduser: user.id });
 
     const obj = await q.getOne();
     return obj;
@@ -32,7 +32,7 @@ export class ProjectRepository extends Repository<Project> {
   async getKg(id: number, user: User): Promise<Project> {
     const q = this.createQueryBuilder('p');
     q.andWhere('p.id = :id', { id });
-    q.andWhere("(p.public = 'Y' or p.id = :id)", { id: user.id });
+    q.andWhere("((p.public = 'Y' and p.id = :id) or (p.ownerid = :iduser))", { id, iduser: user.id });
     q.addSelect(['p.kg']);
 
     const obj = await q.getOne();

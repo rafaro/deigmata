@@ -4,7 +4,7 @@ WORKDIR /app
 
 RUN apk add --no-cache jq
 
-COPY package.json ./
+COPY package.json yarn.lock ./
 
 RUN jq 'del(.scripts.postinstall)' package.json > tmp.json && mv tmp.json package.json
 
