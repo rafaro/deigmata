@@ -46,7 +46,7 @@ This project follows the **Design Science Research (DSR)** approach and is divid
   <img src="https://mhtx.eci.ufmg.br/wp-content/uploads/2021/10/Logo-MHTX-horizontal-RGB-site-1-copiar.png" alt="MHTX Logo" width="400"/>
 </p>
 
-> 🧪 **Deigmata is part of the [MHTX Research Group](https://mhtx.eci.ufmg.br/)** – Media, Humans, and Technologies – at the School of Information Science, Federal University of Minas Gerais (UFMG), Brazil.
+> 🧪 **Deigmata is part of the [MHTX Research Group](https://mhtx.eci.ufmg.br/)** – at the School of Information Science, Federal University of Minas Gerais (UFMG), Brazil.
 
 
 # Setup Instructions
