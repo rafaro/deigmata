@@ -40,6 +40,14 @@ This project follows the **Design Science Research (DSR)** approach and is divid
 
 **Deigmata** serves as a foundation for developing advanced, user-centered visualization strategies that make knowledge graphs more **accessible**, **insightful**, and **usable**.
 
+---
+
+<p align="center">
+  <img src="https://mhtx.eci.ufmg.br/wp-content/uploads/2021/10/Logo-MHTX-horizontal-RGB-site-1-copiar.png" alt="MHTX Logo" width="400"/>
+</p>
+
+> 🧪 **Deigmata is part of the [MHTX Research Group](https://mhtx.eci.ufmg.br/)** – Media, Humans, and Technologies – at the School of Information Science, Federal University of Minas Gerais (UFMG), Brazil.
+
 
 # Setup Instructions
 
