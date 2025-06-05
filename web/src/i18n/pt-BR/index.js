@@ -77,6 +77,7 @@ export default {
   emailMismatch: 'O email e a confirmação do email devem ser idênticos',
   passwordMinLength: 'Insira uma senha de no mínimo 6 dígitos',
   confirmPassword: 'Confirme sua senha',
+  deleteConfimation: 'Você tem certeza que deseja excluir',
   graph: {
     totalNodes: 'Total de nós',
     totalEdges: 'Total de arestas',

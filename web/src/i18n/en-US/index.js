@@ -81,6 +81,7 @@ export default {
   passwordMinLength: 'Enter a password with at least 6 characters',
   confirmPassword: 'Confirm your password',
   passwordMismatch: 'Password and confirmation must match',
+  deleteConfimation: 'Are you sure you want to delete',
   graph: {
     totalNodes: 'Total nodes',
     totalEdges: 'Total edges',

@@ -2,7 +2,7 @@
   <q-page padding>
     <!-- content -->
     <div class="shadow-2 rounded-borders q-pa-md q-mt-md">
-      <p class="text-h4">Deseja excluir o {{ desc }}?</p>
+      <p class="text-h4">{{ t('deleteConfimation') }} {{ desc }}?</p>
       <!-- content -->
       <q-btn class="q-ma-md" :label="t('yes')" color="negative" @click="del(true)" />
       <q-btn class="q-ma-md" :label="t('no')" color="positive" @click="del(false)" />
