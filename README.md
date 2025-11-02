@@ -1,7 +1,7 @@
 
-# Deigmata
+# DEIGMATA
 
-**Deigmata** is a research-driven project focused on enhancing the **visual exploration of knowledge graphs** through interactive and user-centered methodologies. As the volume and complexity of structured semantic data grow, interpreting and extracting meaningful insights from knowledge graphs becomes increasingly challenging. This project proposes a **methodological process** that leverages **exploratory visualization techniques** to improve interaction and facilitate insight generation.
+**DEIGMATA** (DEIGMATA Enhances Interactive Graph Management And Traceable Analysis) is a research-driven project focused on enhancing the **visual exploration of knowledge graphs** through interactive and user-centered methodologies. As the volume and complexity of structured semantic data grow, interpreting and extracting meaningful insights from knowledge graphs becomes increasingly challenging. This project proposes a **methodological process** that leverages **exploratory visualization techniques** to improve interaction and facilitate insight generation.
 
 ## Objectives
 
@@ -38,7 +38,7 @@ This project follows the **Design Science Research (DSR)** approach and is divid
 
 ---
 
-**Deigmata** serves as a foundation for developing advanced, user-centered visualization strategies that make knowledge graphs more **accessible**, **insightful**, and **usable**.
+**DEIGMATA** serves as a foundation for developing advanced, user-centered visualization strategies that make knowledge graphs more **accessible**, **insightful**, and **usable**.
 
 ---
 
@@ -46,7 +46,7 @@ This project follows the **Design Science Research (DSR)** approach and is divid
   <img src="https://mhtx.eci.ufmg.br/wp-content/uploads/2021/10/Logo-MHTX-horizontal-RGB-site-1-copiar.png" alt="MHTX Logo" width="400"/>
 </p>
 
-> 🧪 **Deigmata is part of the [MHTX Research Group](https://mhtx.eci.ufmg.br/)** – at the School of Information Science, Federal University of Minas Gerais (UFMG), Brazil.
+> 🧪 **DEIGMATA is part of the [MHTX Research Group](https://mhtx.eci.ufmg.br/)** – at the School of Information Science, Federal University of Minas Gerais (UFMG), Brazil.
 
 
 # Setup Instructions
