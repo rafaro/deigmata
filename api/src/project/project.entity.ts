@@ -34,7 +34,7 @@ export class Project extends BaseDefaultEntity {
   public: string;
 
 
-  @Column("text", { select: false, nullable: true })
+  @Column("jsonb", { select: false, nullable: true })
   kg?: string;
 
   @ManyToOne(() => Assign, { eager: false })

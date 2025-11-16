@@ -63,7 +63,7 @@ class MyKgView {
 
   async getElements(id) {
     const response = await api.get(`project/kg/${id}`)
-    const kg = JSON.parse(response.data.kg)
+    const kg = response.data.kg
     return kg
   }
 

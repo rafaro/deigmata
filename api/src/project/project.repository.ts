@@ -36,6 +36,7 @@ export class ProjectRepository extends Repository<Project> {
     q.addSelect(['p.kg']);
 
     const obj = await q.getOne();
+
     return obj;
   }
 }
