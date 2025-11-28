@@ -56,6 +56,12 @@ const routes = [
         props: true,
         component: () => import('pages/project/Delete.vue'),
       },
+      {
+        path: 'import/:id',
+        name: 'project/import',
+        props: true,
+        component: () => import('pages/project/Import.vue'),
+      },
     ],
   },
   {

@@ -1,4 +1,6 @@
-import { IsOptional, MaxLength } from 'class-validator';
+import { BadRequestException } from '@nestjs/common';
+import { IsObject, IsOptional, MaxLength } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class ProjectCreateDto {
 
@@ -9,4 +11,18 @@ export class ProjectCreateDto {
   @IsOptional()
   @MaxLength(50, { message: 'LAYOUT: precisa ser menor que 50 caracteres' })
   layout: string;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch {
+        throw new BadRequestException('kg deve ser um JSON válido');
+      }
+    }
+    return value;
+  })
+  @IsObject()
+  kg: object;
 }

@@ -31,10 +31,13 @@ export class ProjectService {
     return found;
   }
 
-  async create(dto: ProjectCreateDto): Promise<void> {
+  async create(dto: ProjectCreateDto, user: User): Promise<void> {
     const { name } = dto;
     const obj = new Project();
     obj.name = name;
+    obj.user = user;
+    obj.kg = dto.kg;
+
 
     try {
       await obj.save();
@@ -54,10 +57,11 @@ export class ProjectService {
 
   async update(id: number, dto: ProjectCreateDto, user: User): Promise<Project> {
     const obj = await this.getById(id, user);
-    const { name, layout } = dto;
+    const { name, layout, kg } = dto;
 
     obj.name = name;
     obj.layout = layout;
+    obj.kg = kg;
 
     return await this.repo.save(obj);
   }
@@ -66,7 +70,7 @@ export class ProjectService {
     const obj = await this.getById(id, user);
     const { kg } = dto;
 
-    obj.kg = JSON.parse(kg);
+    obj.kg = kg;
 
     return await this.repo.save(obj);
 

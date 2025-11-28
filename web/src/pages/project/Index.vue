@@ -1,7 +1,9 @@
 <template>
   <q-page padding>
     <div class="q-pa-sm">
-      <p class="text-h5">Projects</p>
+      <p class="text-h5">
+        {{ t('project') + 's' }}
+      </p>
       <q-btn size="md" class="q-mb-sm" color="blue" :to="{ name: 'project/new' }">
         {{ t('new') }}
       </q-btn>
@@ -79,6 +81,7 @@
   import { api } from 'boot/axios'
   import { useI18n } from 'vue-i18n'
   import { useProjectStore } from 'stores/project'
+  import { service } from 'boot/service'
   export default {
     setup() {
       const { t } = useI18n()
@@ -106,6 +109,7 @@
       const loading = ref(true)
       const select = (id, name, layout) => {
         store.setProject({ id, name, layout })
+        service.msgGreen(t('projectSelectedSuccessfully'))
       }
 
       api

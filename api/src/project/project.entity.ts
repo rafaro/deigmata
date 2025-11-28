@@ -34,8 +34,13 @@ export class Project extends BaseDefaultEntity {
   public: string;
 
 
-  @Column("jsonb", { select: false, nullable: true })
-  kg?: string;
+  @Column("jsonb", {
+    select: false, nullable: true, transformer: {
+      to: (value: object) => value,
+      from: (value: string) => typeof value === 'string' ? JSON.parse(value) : value
+    }
+  })
+  kg?: object;
 
   @ManyToOne(() => Assign, { eager: false })
   @JoinColumn({ name: 'assignid' })

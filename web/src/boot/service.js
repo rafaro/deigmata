@@ -97,6 +97,16 @@ class MyService {
     })
   }
 
+  msgYellow(msg) {
+    Notify.create({
+      color: 'warning',
+      icon: 'warning',
+      position: 'top',
+      html: true,
+      message: msg,
+    })
+  }
+
   msgError(msg) {
     let msgPrint
     if (Array.isArray(msg)) {

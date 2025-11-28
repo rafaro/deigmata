@@ -39,8 +39,8 @@ export class ProjectController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Role(AuthRoles.USER)
   @UsePipes(ValidationPipe)
-  create(@Body() dto: ProjectCreateDto): Promise<void> {
-    return this.srv.create(dto);
+  create(@GetUser() user: User, @Body() dto: ProjectCreateDto): Promise<void> {
+    return this.srv.create(dto, user);
   }
 
   @Put(':id')

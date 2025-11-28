@@ -13,14 +13,23 @@
           <div class="col-sm-5">
             <q-input outlined dense v-model="data.name" :label="t('name')" />
           </div>
+          <!-- Component -->
           <div class="col-sm-12">
-            <div class="row">
-              <div class="col-sm-2">
-                <q-btn type="submit" :label="t('save')" color="green" size="md" />
-              </div>
-              <div class="col-sm-2">
-                <q-btn :label="t('back')" color="grey-6" size="md" @click="router.back()" />
-              </div>
+            <q-separator class="q-mb-md" />
+            <div class="text-subtitle2 q-mb-sm">{{ t('importSection') }}</div>
+            <ImportData :label="t('importProjectData')" @data-imported="handleImportedData" />
+            <q-separator class="q-mt-md" />
+          </div>
+          <div class="col-sm-12">
+            <div class="row q-gutter-sm">
+              <q-btn type="submit" :label="t('save')" color="green" size="md" icon="save" />
+              <q-btn
+                :label="t('back')"
+                color="grey-6"
+                size="md"
+                icon="arrow_back"
+                @click="router.back()"
+              />
             </div>
           </div>
         </div>
@@ -35,15 +44,24 @@
   import { service } from 'boot/service'
   import { useRouter } from 'vue-router'
   import { useI18n } from 'vue-i18n'
+  import ImportData from 'components/ImportData.vue'
 
   export default {
+    components: {
+      ImportData,
+    },
     props: ['id'],
     setup(props) {
       const data = ref({})
       const router = useRouter()
       const { t } = useI18n()
 
+      const handleImportedData = (importedData) => {
+        // Mescla os dados importados com os dados existentes
+        data.value.kg = importedData
+      }
       const submit = () => {
+        console.log('Submitting data:', data.value)
         api
           .put(`project/${props.id}`, data.value)
           .then(() => {
@@ -62,7 +80,7 @@
         .catch((e) => {
           service.msgError(e.response.data.message)
         })
-      return { data, submit, router, t }
+      return { data, submit, router, t, handleImportedData }
     },
   }
 </script>

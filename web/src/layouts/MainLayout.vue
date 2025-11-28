@@ -10,6 +10,7 @@
           {{ prjLabel }} <q-icon name="perm_identity" size="sm" /> {{ userLabel }}
         </div>
         <!-- <div>{{user.id}} </div> -->
+        <LanguageSelector />
       </q-toolbar>
     </q-header>
 
@@ -67,18 +68,29 @@
 
 <script>
   // https://next.quasar.dev/quasar-cli/prefetch-feature
-  import { defineComponent, ref, computed } from 'vue'
+  import { defineComponent, ref, computed, onMounted } from 'vue'
   import { service } from 'boot/service'
   import { useI18n } from 'vue-i18n'
   import { useUserStore } from 'stores/user'
   import { useProjectStore } from 'stores/project'
+  import { useLocaleStore } from 'stores/locale'
+  import LanguageSelector from 'components/LanguageSelector.vue'
   export default defineComponent({
     name: 'MainLayout',
+    components: {
+      LanguageSelector,
+    },
     setup() {
       const leftDrawerOpen = ref(false)
       const { t } = useI18n()
       const usrStore = useUserStore()
       const prjStore = useProjectStore()
+      const localeStore = useLocaleStore()
+
+      onMounted(() => {
+        localeStore.initLocale()
+      })
+
       usrStore.initUser()
       const user = computed({
         get: () => usrStore.getUser, // usrStore.getters['user/user'] // usrStore.state.user.user
@@ -113,7 +125,7 @@
               show: user.value.id,
               item: [
                 {
-                  label: 'view',
+                  label: t('view'),
                   to: '/kg',
                   icon: 'layers',
                   separator: false,
