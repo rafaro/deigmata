@@ -1,0 +1,68 @@
+{
+  "project": {
+    "name": {
+      "maxLength": "Nome precisa ser menor que 100 caracteres."
+    },
+    "layout": {
+      "maxLength": "Layout precisa ser menor que 50 caracteres."
+    },
+    "kg": {
+      "required": "KG: campo obrigatório.",
+      "json": "kg deve ser um JSON válido."
+    }
+  },
+  "auth": {
+    "email": {
+      "minLength": "Email precisa ser maior que 4 caracteres.",
+      "maxLength": "Email precisa ser menor que 100 caracteres."
+    },
+    "password": {
+      "minLength": "Senha precisa ser maior que 4 caracteres.",
+      "maxLength": "Senha precisa ser menor que 100 caracteres."
+    }
+  },
+  "user": {
+    "name": {
+      "maxLength": "Nome precisa ser menor que 50 caracteres."
+    },
+    "email": {
+      "required": "Email é obrigatório.",
+      "maxLength": "Email precisa ser menor que 100 caracteres.",
+      "format": "Email precisa ser válido."
+    },
+    "password": {
+      "required": "Senha é obrigatória.",
+      "confirmRequired": "Confirmação da senha é obrigatória.",
+      "mismatch": "Senha e confirmação devem ser iguais.",
+      "newMismatch": "Nova senha e confirmação devem ser iguais.",
+      "newRequired": "Nova senha é obrigatória.",
+      "newConfirmRequired": "Confirmação da nova senha é obrigatória."
+    },
+    "subject": {
+      "required": "Assunto é obrigatório."
+    },
+    "body": {
+      "required": "Corpo é obrigatório."
+    },
+    "recipients": {
+      "invalid": "Destinatários devem estar registrados."
+    },
+    "status": {
+      "invalid": "Status deve ser A ou I."
+    },
+    "role": {
+      "invalid": "Papel deve ser USER, PSI ou SUPER."
+    },
+    "state": {
+      "required": "Estado é obrigatório."
+    },
+    "city": {
+      "required": "Cidade é obrigatória."
+    }
+  },
+  "assign": {
+    "name": {
+      "maxLength": "Nome precisa ser menor que 100 caracteres."
+    }
+  }
+}

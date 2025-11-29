@@ -1,5 +1,6 @@
 import { defineBoot } from '#q-app/wrappers'
 import axios from 'axios'
+import { useLocaleStore } from 'stores/locale'
 
 // Be careful when using SSR for cross-request state pollution
 // due to creating a Singleton instance here;
@@ -29,6 +30,9 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    // Adicionar Accept-Language do Pinia store
+    const localeStore = useLocaleStore()
+    config.headers['Accept-Language'] = localeStore.currentLocale
 
     return config
   },

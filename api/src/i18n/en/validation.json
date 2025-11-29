@@ -1,0 +1,68 @@
+{
+  "project": {
+    "name": {
+      "maxLength": "Name must be shorter than 100 characters."
+    },
+    "layout": {
+      "maxLength": "Layout must be shorter than 50 characters."
+    },
+    "kg": {
+      "required": "kg is required.",
+      "json": "kg must be valid JSON."
+    }
+  },
+  "auth": {
+    "email": {
+      "minLength": "Email must be longer than 4 characters.",
+      "maxLength": "Email must be shorter than 100 characters."
+    },
+    "password": {
+      "minLength": "Password must be longer than 4 characters.",
+      "maxLength": "Password must be shorter than 100 characters."
+    }
+  },
+  "user": {
+    "name": {
+      "maxLength": "Name must be shorter than 50 characters."
+    },
+    "email": {
+      "required": "Email is required.",
+      "maxLength": "Email must be shorter than 100 characters.",
+      "format": "Email must be valid."
+    },
+    "password": {
+      "required": "Password is required.",
+      "confirmRequired": "Password confirmation is required.",
+      "mismatch": "Password and confirmation must match.",
+      "newMismatch": "New password and confirmation must match.",
+      "newRequired": "New password is required.",
+      "newConfirmRequired": "New password confirmation is required."
+    },
+    "subject": {
+      "required": "Subject is required."
+    },
+    "body": {
+      "required": "Body is required."
+    },
+    "recipients": {
+      "invalid": "Recipients must be registered."
+    },
+    "status": {
+      "invalid": "Status must be either A or I."
+    },
+    "role": {
+      "invalid": "Role must be USER, PSI or SUPER."
+    },
+    "state": {
+      "required": "State is required."
+    },
+    "city": {
+      "required": "City is required."
+    }
+  },
+  "assign": {
+    "name": {
+      "maxLength": "Name must be shorter than 100 characters."
+    }
+  }
+}

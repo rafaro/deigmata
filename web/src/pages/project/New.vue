@@ -8,13 +8,8 @@
             <p class="text-h5">{{ t('create') }} {{ t('project') }}</p>
           </div>
           <div class="col-sm-5">
-            <q-input
-              outlined
-              dense
-              v-model="data.name"
-              :label="t('name')"
-              :rules="[(val) => !!val || t('fieldRequired')]"
-            />
+            <q-input outlined dense v-model="data.name" :label="t('name')" />
+            <!-- :rules="[(val) => !!val || t('fieldRequired')]" -->
           </div>
           <!-- Component -->
           <div class="col-sm-12">

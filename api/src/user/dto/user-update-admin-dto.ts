@@ -1,15 +1,16 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsNotEmpty, IsNumber, IsOptional, MaxLength } from 'class-validator';
+import { IsIn, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
+import { i18nValidationMessage } from 'nestjs-i18n';
 
 export class UserUpdateAdminDto {
 
-  @IsIn(['A', 'I'], { message: 'STATUS: É preciso selecionar um tipo de status' })
+  @IsIn(['A', 'I'], { message: i18nValidationMessage('validation.user.status.invalid') })
   status: string; //varchar(2) DEFAULT NULL,
 
-  @IsNotEmpty({ message: 'EMAIL: É obrigatório' })
+  @IsNotEmpty({ message: i18nValidationMessage('validation.user.email.required') })
   email: string;
 
-  @IsIn(['USER', 'PSI', 'SUPER'], { message: 'PAPEL: É preciso selecionar um tipo de papel' })
+  @IsIn(['USER', 'PSI', 'SUPER'], { message: i18nValidationMessage('validation.user.role.invalid') })
   role: string; //varchar(255) NOT NULL,
 
   @IsOptional()
@@ -23,12 +24,12 @@ export class UserUpdateAdminDto {
 
   @Type(() => Number)
   @IsNumber()
-  @IsNotEmpty({ message: 'ESTADO: É obrigatório' })
+  @IsNotEmpty({ message: i18nValidationMessage('validation.user.state.required') })
   estadoId: number;
 
 
   @Type(() => Number)
   @IsNumber()
-  @IsNotEmpty({ message: 'CIDADE: É obrigatório' })
+  @IsNotEmpty({ message: i18nValidationMessage('validation.user.city.required') })
   cidadeId: number;
 }
