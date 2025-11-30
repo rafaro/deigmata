@@ -1,7 +1,7 @@
-
 # DEIGMATA
 
 **DEIGMATA** (DEIGMATA Enhances Interactive Graph Management And Traceable Analysis) is a research-driven project focused on enhancing the **visual exploration of knowledge graphs** through interactive and user-centered methodologies. As the volume and complexity of structured semantic data grow, interpreting and extracting meaningful insights from knowledge graphs becomes increasingly challenging. This project proposes a **methodological process** that leverages **exploratory visualization techniques** to improve interaction and facilitate insight generation.
+
 
 ## Objectives
 
@@ -38,6 +38,12 @@ This project follows the **Design Science Research (DSR)** approach and is divid
 
 ---
 
+## Development Approach
+
+This project partially adopts **[vibecoding](https://github.com/roboco-io/awesome-vibecoding)** principles, emphasizing intuitive development flows and rapid prototyping to maintain momentum and creativity throughout the research and implementation phases.
+
+---
+
 **DEIGMATA** serves as a foundation for developing advanced, user-centered visualization strategies that make knowledge graphs more **accessible**, **insightful**, and **usable**.
 
 ---
@@ -64,13 +70,11 @@ After starting the container, **create a new database and user** in your Postgre
 ## 2. Configure the Application
 
 Create a file named `production.yml` in the following path:
-
 ```
 ./deigmata/api/config/
 ```
 
 Use the example configuration below:
-
 ```yaml
 server:
   port: 3000
@@ -91,13 +95,11 @@ db:
 ## 3. Start the Application
 
 Navigate to the `./deigmata` directory and run:
-
 ```bash
 docker compose up
 ```
 
 > **Note:** After every `git pull`, you must rebuild the containers:
-
 ```bash
 docker compose up --build
 ```
