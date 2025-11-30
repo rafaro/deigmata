@@ -14,6 +14,7 @@ export class ProjectRepository extends Repository<Project> {
     const q = this.createQueryBuilder('p');
     q.orWhere("p.public = 'Y'");
     q.orWhere('p.ownerid = :id', { id: user.id });
+    q.orderBy('p.id', 'DESC');
 
 
     const obj = await q.getMany();

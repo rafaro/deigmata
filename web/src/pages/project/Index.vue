@@ -57,6 +57,15 @@
                 icon="check"
                 @click="select(props.row.id, props.row.name, props.row.layout)"
               />
+              <q-btn
+                class="q-mx-sm"
+                size="md"
+                color="purple"
+                round
+                dense
+                icon="visibility"
+                @click="goToKg(props.row)"
+              />
             </q-td>
             <q-td v-for="col in props.cols" :key="col.name" :props="props">
               {{ col.value }}
@@ -78,6 +87,7 @@
 
 <script>
   import { ref } from 'vue'
+  import { useRouter } from 'vue-router'
   import { api } from 'boot/axios'
   import { useI18n } from 'vue-i18n'
   import { useProjectStore } from 'stores/project'
@@ -86,6 +96,7 @@
     setup() {
       const { t } = useI18n()
       const store = useProjectStore()
+      const router = useRouter()
 
       const cols = [
         { name: 'id', field: 'id', label: 'ID', align: 'left', sortable: true },
@@ -111,6 +122,10 @@
         store.setProject({ id, name, layout })
         service.msgGreen(t('projectSelectedSuccessfully'))
       }
+      const goToKg = (row) => {
+        select(row.id, row.name, row.layout)
+        router.push({ name: 'kg' })
+      }
 
       api
         .get('project')
@@ -121,7 +136,7 @@
         .catch(() => {
           loading.value = false
         })
-      return { data, cols, loading, select, t }
+      return { data, cols, loading, select, goToKg, t }
     },
   }
 </script>
