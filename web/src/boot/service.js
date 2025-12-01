@@ -56,14 +56,18 @@ class MyService {
     }
     try {
       const { exp: expiration } = jwtDecode(token)
-      const isLogged = !!expiration && Date.now() > expiration * 1000
-
-      if (isLogged) {
-        // Se o token tem uma data de expiração e
-        // essa data é menor que a atual o usuário
+      if (!expiration) {
         return false
       }
-      // não está mais assinado.
+
+      const isExpired = Date.now() >= expiration * 1000
+
+      if (isExpired) {
+        // Se o token tem uma data de expiração e essa data é menor que a atual
+        // o usuário não está mais assinado.
+        return false
+      }
+
       return true
     } catch (e) {
       console.log(e.message)
