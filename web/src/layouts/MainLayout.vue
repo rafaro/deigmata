@@ -134,6 +134,29 @@
               ],
             },
             {
+              label: t('rag.title'),
+              to: '',
+              icon: 'psychology',
+              separator: false,
+              show: user.value.id,
+              item: [
+                {
+                  label: t('rag.historyMenu'),
+                  to: '/rag/history',
+                  icon: 'history',
+                  separator: false,
+                  show: user.value.id,
+                },
+                {
+                  label: t('rag.newRunMenu'),
+                  to: '/rag/execute',
+                  icon: 'play_circle',
+                  separator: false,
+                  show: user.value.id,
+                },
+              ],
+            },
+            {
               label: 'Admin',
               to: '',
               icon: 'admin_panel_settings',

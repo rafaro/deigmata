@@ -7,6 +7,7 @@ import { UserModule } from './user/user.module';
 import { ProjectModule } from './project/project.module';
 import { AssignModule } from './assign/assign.module';
 import { AcceptLanguageResolver, I18nJsonLoader, I18nModule } from 'nestjs-i18n';
+import { RagModule } from './rag/rag.module';
 import * as path from 'path';
 
 @Module({
@@ -24,7 +25,7 @@ import * as path from 'path';
         { use: AcceptLanguageResolver, options: { matchType: 'strict' } }
       ],
     }),
-    UserModule, ProjectModule, AssignModule
+    UserModule, ProjectModule, AssignModule, RagModule
   ],
   controllers: [AppController],
   providers: [AppService],

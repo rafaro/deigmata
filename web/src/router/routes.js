@@ -76,6 +76,28 @@ const routes = [
       },
     ],
   },
+  {
+    path: '/rag',
+    component: () => import('layouts/MainLayout.vue'),
+    meta: { auth: true, role: 'USER|SUPER' },
+    children: [
+      {
+        path: 'execute',
+        name: 'rag/execute',
+        component: () => import('src/pages/rag/Execute.vue'),
+      },
+      {
+        path: 'history',
+        name: 'rag/history',
+        component: () => import('src/pages/rag/Index.vue'),
+      },
+      {
+        path: 'new',
+        name: 'rag/new',
+        component: () => import('pages/rag/New.vue'),
+      },
+    ],
+  },
 
   // Always leave this as last one,
   // but you can also remove it
