@@ -124,3 +124,26 @@ Use the following credentials:
 
 - **Email:** `test@test.com`
 - **Password:** `testtest`
+- 
+## How to Cite
+
+If you use **DEIGMATA** in academic work, publications, or research projects, please cite the following paper:
+
+### Academic Reference
+
+Rocha, R.; Lima, G. Â. de. **Deigmata: A User-Centered Visualization Tool for Knowledge Graph Exploration**. *Knowledge Organization*, 2025, 52(8), 46137.  
+https://doi.org/10.31083/KO46137
+
+### BibTeX
+
+```bibtex
+@article{rocha2025deigmata,
+  author  = {Rocha, Rafael and Lima, Gercina {\^A}ngela de},
+  title   = {Deigmata: A User-Centered Visualization Tool for Knowledge Graph Exploration},
+  journal = {Knowledge Organization},
+  year    = {2025},
+  volume  = {52},
+  number  = {8},
+  pages   = {46137},
+  doi     = {10.31083/KO46137}
+}
