@@ -144,6 +144,6 @@ https://doi.org/10.31083/KO46137
   year    = {2025},
   volume  = {52},
   number  = {8},
-  pages   = {46137},
+  pages   = {1--13},
   doi     = {10.31083/KO46137}
 }
