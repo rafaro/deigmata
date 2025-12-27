@@ -22,7 +22,7 @@
         <div class="row">
           <br />
           <div id="zoomLevel" class="col-10">📏 Zoom: {{ zoomLevel }}x</div>
-          <div id="selectLayout" class="col-5">
+          <div id="selectLayout" class="col-10 q-mb-sm">
             <q-select
               filled
               v-model="selectedLayout"
@@ -35,17 +35,34 @@
               @update:model-value="(val) => changeLayout(val)"
             />
           </div>
-          <div id="filterText" class="col-7">
-            <q-input
-              outlined
-              dense
-              v-model="filterText"
-              :label="t('filter')"
-              @update:model-value="(val) => filterGraph(val)"
-            />
-          </div>
 
           <q-list bordered class="rounded-borders col-12">
+            <q-expansion-item
+              id="filterexpansion"
+              expand-separator
+              icon="filter_alt"
+              :label="t('filter')"
+            >
+              <div id="filterText" class="col-7 q-mb-sm">
+                <q-input
+                  outlined
+                  dense
+                  v-model="filterText"
+                  :label="t('filter')"
+                  @update:model-value="(val) => filterGraph(val)"
+                />
+              </div>
+              <div class="col-12 q-mb-sm">
+                <q-btn
+                  color="primary"
+                  icon="add_circle"
+                  :loading="creatingProject"
+                  @click="createProjectFromFilteredGraph"
+                >
+                  {{ t('createProjectFromFilter') }}
+                </q-btn>
+              </div>
+            </q-expansion-item>
             <q-expansion-item id="history" expand-separator icon="history" :label="t('history')">
               <div class="col-10 q-py-md">
                 <q-btn @click="undo" icon="undo" class="col-4 q-mx-md" :disabled="!canUndo">
@@ -160,6 +177,8 @@
   import { useProjectStore } from 'src/stores/project'
   import { useI18n } from 'vue-i18n'
   import { kgview } from 'src/boot/kgview'
+  import { api } from 'src/boot/axios'
+  import { service } from 'src/boot/service'
   import cytoscape from 'cytoscape'
   import cxtmenu from 'cytoscape-cxtmenu'
   import coseBilkent from 'cytoscape-cose-bilkent'
@@ -184,6 +203,7 @@
   const { t } = useI18n()
   const listElements = ref([])
   const history = ref([])
+  const creatingProject = ref(false)
   const canUndo = computed(() => history.value.length > 0)
 
   const metrics = reactive({
@@ -255,133 +275,177 @@
               ele.style('background-color', '#f00')
             },
           },
-              {
-                content: '✏️ Criar grupo',
-                select: (ele) => {
-                  kgview.createGroup(cy, ele)
-                },
-              },
-            ],
-          })
-
-          const updateSelection = () => {
-            selectedElements.nodes = cy.value.$('node:selected').map((ele) => ele.data())
-            selectedElements.edges = cy.value.$('edge:selected').map((ele) => ele.data())
-          }
-
-          cy.value.on('select unselect lassoend', updateSelection)
-
-          cy.value.resize()
-          cy.value.zoom(cy.value.zoom())
-          cy.value.elements().unselect()
-          setupDragDrop()
-          saveState()
-        } catch (error) {
-          console.error('Erro ao carregar dados do projeto:', error)
-        }
-      }
-
-      function getDetail(e) {
-        selectedElement.value = kgview.getDetail(e)
-      }
-
-      function changeLayout(layout) {
-        if (cy.value) {
-          cy.value.layout({ name: layout }).run()
-        }
-        kgview.updateLayout(prj.value.id, layout)
-        prjStore.setLayout({ layout })
-      }
-
-      function filterGraph(val) {
-        if (val) {
-          const eles = cy.value.filter(`node[id !^= '${val.trim()}']`)
-          cy.value.remove(eles)
-        } else {
-          cy.value.elements().remove()
-          cy.value.add(elements.value)
-        }
-      }
-
-      function setupDragDrop() {
-        cy.value.on('free', 'node', (e) => {
-          kgview.setGroup(e, cy)
-          //kgview.updateElement(e.target)
-          saveState()
-        })
-      }
-      function collapse() {
-        kgview.collapse(cy)
-      }
-
-      function expand() {
-        kgview.expand(cy)
-      }
-
-      function getList() {
-        const nodes = cy.value.nodes()
-        const visited = new Set()
-        const result = []
-
-        function visit(node) {
-          if (visited.has(node.id())) return
-          visited.add(node.id())
-
-          // visit all outgoing edges' targets
-          node.outgoers('edge').targets().forEach(visit)
-
-          result.unshift(node.id()) // prepend
-        }
-
-        nodes.forEach((node) => visit(node))
-        listElements.value = result
-      }
-
-      function saveState() {
-        const json = cy.value.json()
-        kgview.updateKg(prj.value.id, JSON.stringify(json.elements))
-        history.value.push(JSON.parse(JSON.stringify(json)))
-      }
-
-      function undo() {
-        if (history.value.length > 0) {
-          const lastState = history.value.pop()
-          cy.value.json(lastState)
-          cy.value.resize()
-          cy.value.run()
-        }
-      }
-
-      function calculateMetrics() {
-        const nodes = cy.value.nodes()
-        const edges = cy.value.edges()
-
-        const degrees = nodes.map((n) => n.degree())
-        const totalNodes = nodes.length
-        const totalEdges = edges.length
-
-        metrics.nodes = totalNodes
-        metrics.edges = totalEdges
-        metrics.avgDegree = totalNodes ? degrees.reduce((a, b) => a + b, 0) / totalNodes : 0
-        metrics.maxDegree = Math.max(...degrees, 0)
-        metrics.minDegree = Math.min(...degrees, 0)
-
-        metrics.density = totalNodes > 1 ? (2 * totalEdges) / (totalNodes * (totalNodes - 1)) : 0
-      }
-
-      function startTour() {
-        const tour = new Shepherd.Tour({
-          defaultStepOptions: {
-            scrollTo: true,
-            cancelIcon: { enabled: true },
-            classes: 'shadow-md bg-purple-50',
+          {
+            content: '✏️ Criar grupo',
+            select: (ele) => {
+              kgview.createGroup(cy, ele)
+            },
           },
-        })
+        ],
+      })
 
-        kgview.addStep(tour, t)
-
-        tour.start()
+      const updateSelection = () => {
+        selectedElements.nodes = cy.value.$('node:selected').map((ele) => ele.data())
+        selectedElements.edges = cy.value.$('edge:selected').map((ele) => ele.data())
       }
+
+      cy.value.on('select unselect lassoend', updateSelection)
+
+      cy.value.resize()
+      cy.value.zoom(cy.value.zoom())
+      cy.value.elements().unselect()
+      setupDragDrop()
+      saveState()
+    } catch (error) {
+      console.error('Erro ao carregar dados do projeto:', error)
+    }
+  }
+
+  function getDetail(e) {
+    selectedElement.value = kgview.getDetail(e)
+  }
+
+  function changeLayout(layout) {
+    if (cy.value) {
+      cy.value.layout({ name: layout }).run()
+    }
+    kgview.updateLayout(prj.value.id, layout)
+    prjStore.setLayout({ layout })
+  }
+
+  function filterGraph(val) {
+    if (val) {
+      const needle = val.trim().toLowerCase()
+      cy.value.elements().remove()
+      cy.value.add(elements.value)
+      const matchedNodes = cy.value.nodes().filter((node) => {
+        const label = (node.data('label') || '').toString().toLowerCase()
+        return label.includes(needle)
+      })
+      const connectedEdges = matchedNodes.connectedEdges()
+      const connectedNodes = connectedEdges.connectedNodes()
+      const keep = matchedNodes.union(connectedEdges).union(connectedNodes)
+      const remove = cy.value.elements().difference(keep)
+      cy.value.remove(remove)
+    } else {
+      cy.value.elements().remove()
+      cy.value.add(elements.value)
+    }
+  }
+
+  async function createProjectFromFilteredGraph() {
+    if (!cy.value) return
+
+    const snapshot = cy.value.json().elements || { nodes: [], edges: [] }
+    const totalElements = snapshot.nodes.length + snapshot.edges.length
+
+    if (totalElements === 0) {
+      service.msgYellow(t('createProjectFromFilterEmpty'))
+      return
+    }
+
+    const baseName = prj.value?.name ? `${prj.value.name}` : t('project')
+    const defaultName = filterText.value
+      ? `${baseName} - ${filterText.value}`
+      : `${baseName} - ${t('filter')}`
+
+    const name = window.prompt(t('createProjectFromFilterPrompt'), defaultName)
+    if (!name) return
+
+    creatingProject.value = true
+    try {
+      await api.post('project', {
+        name,
+        layout: selectedLayout.value,
+        kg: snapshot,
+      })
+      service.msgGreen(t('createProjectFromFilterSuccess'))
+    } catch (error) {
+      service.msgError(error?.response?.data?.message || error?.message || t('failed'))
+    } finally {
+      creatingProject.value = false
+    }
+  }
+
+  function setupDragDrop() {
+    cy.value.on('free', 'node', (e) => {
+      kgview.setGroup(e, cy)
+      //kgview.updateElement(e.target)
+      saveState()
+    })
+  }
+  function collapse() {
+    kgview.collapse(cy)
+  }
+
+  function expand() {
+    kgview.expand(cy)
+  }
+
+  function getList() {
+    const nodes = cy.value.nodes()
+    const visited = new Set()
+    const result = []
+
+    function visit(node) {
+      if (visited.has(node.id())) return
+      visited.add(node.id())
+
+      // visit all outgoing edges' targets
+      node.outgoers('edge').targets().forEach(visit)
+
+      result.unshift(node.id()) // prepend
+    }
+
+    nodes.forEach((node) => visit(node))
+    listElements.value = result
+  }
+
+  function saveState() {
+    const json = cy.value.json()
+    kgview.updateKg(prj.value.id, JSON.stringify(json.elements))
+    history.value.push(JSON.parse(JSON.stringify(json)))
+  }
+
+  function undo() {
+    if (history.value.length > 0) {
+      const lastState = history.value.pop()
+      cy.value.json(lastState)
+      cy.value.resize()
+      cy.value.run()
+    }
+  }
+
+  function calculateMetrics() {
+    const nodes = cy.value.nodes()
+    const edges = cy.value.edges()
+
+    const degrees = nodes.map((n) => n.degree())
+    const totalNodes = nodes.length
+    const totalEdges = edges.length
+
+    metrics.nodes = totalNodes
+    metrics.edges = totalEdges
+    metrics.avgDegree = totalNodes ? degrees.reduce((a, b) => a + b, 0) / totalNodes : 0
+    metrics.maxDegree = Math.max(...degrees, 0)
+    metrics.minDegree = Math.min(...degrees, 0)
+
+    metrics.density = totalNodes > 1 ? (2 * totalEdges) / (totalNodes * (totalNodes - 1)) : 0
+  }
+
+  function startTour() {
+    const tour = new Shepherd.Tour({
+      defaultStepOptions: {
+        scrollTo: true,
+        cancelIcon: { enabled: true },
+        classes: 'shadow-md bg-purple-50',
+      },
+    })
+
+    kgview.addStep(tour, t)
+
+    tour.start()
+  }
 </script>
 
 <style scoped>
