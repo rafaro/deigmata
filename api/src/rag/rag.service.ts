@@ -1,102 +1,224 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { EmbeddingService } from './embedding.service';
 import { ILLMProvider } from './interfaces/llm.interface';
-import { map } from 'rxjs';
 import { ProjectService } from 'src/project/project.service';
+import { I18nContext, I18nService } from 'nestjs-i18n';
+import { RagQueryDto } from './dto/rag-query-dto';
+import { User } from 'src/user/user.entity';
+import { RagCreateDto } from './dto/rag-create-dto';
+import { RagRepository } from './rag.repository';
+import { Rag } from './rag.entity';
+import { RagMessageService } from 'src/rag-message/rag-message.service';
+import * as config from 'config';
+import { RagMessage } from 'src/rag-message/rag-message.entity';
+import { DataSource } from 'typeorm';
+import { InjectDataSource } from '@nestjs/typeorm';
 
 @Injectable()
 export class RagService {
+  private readonly logger = new Logger(RagService.name);
+
   constructor(
     @Inject('LLM_PROVIDER') private llmProvider: ILLMProvider,
+    private repo: RagRepository,
     private embeddingService: EmbeddingService,
     private projectService: ProjectService,
+    private ragMessageService: RagMessageService,
+    private readonly i18n: I18nService,
+    @InjectDataSource() private dataSource: DataSource,
   ) { }
 
-
-  private chunkText(text: string, chunkSize: number = 1000, overlap: number = 200): string[] {
-    const chunks: string[] = [];
-    let start = 0;
-
-    while (start < text.length) {
-      const end = Math.min(start + chunkSize, text.length);
-      chunks.push(text.slice(start, end));
-      start += chunkSize - overlap;
+  private getAnswerMaxLength(): number | undefined {
+    const column = this.dataSource
+      .getMetadata(RagMessage)
+      .findColumnWithPropertyName('answer');
+    const length = column?.length;
+    if (!length) {
+      return undefined;
     }
-
-    return chunks;
+    const parsedLength = Number(length);
+    return Number.isFinite(parsedLength) ? parsedLength : undefined;
   }
+
   private extractTextFromKG(kg: any): string {
     if (!kg) return '';
 
+    let parsedKg = kg;
+
     if (typeof kg === 'string') {
-      return kg;
+      try {
+        parsedKg = JSON.parse(kg);
+      } catch (error) {
+        this.logger.warn(`Failed to parse KG string, using raw value. Error: ${error}`);
+        return kg;
+      }
     }
 
-    if (typeof kg === 'object') {
-      return JSON.stringify(kg, null, 2);
+    if (typeof parsedKg === 'object' && parsedKg !== null) {
+      const edges = Array.isArray(parsedKg.edges) ? parsedKg.edges : [];
+      const triples = edges
+        .map((edge: any) => edge?.data)
+        .filter((data: any) => data?.source && data?.label && data?.target)
+        .map((data: any) => `${data.source} -> ${data.label} -> ${data.target}`);
+
+      const nodes = Array.isArray(parsedKg.nodes) ? parsedKg.nodes : [];
+      const groupLabels = new Map<string, string>();
+      const groupMembers = new Map<string, Set<string>>();
+
+      nodes.forEach((node: any) => {
+        const data = node?.data ?? {};
+        const nodeId = data?.id;
+        const nodeLabel = data?.label ?? data?.name ?? data?.id;
+        if (nodeId && nodeLabel) {
+          groupLabels.set(nodeId, nodeLabel);
+        }
+        if (data?.parent) {
+          const parentId = data.parent;
+          const memberLabel = data?.id ?? data?.label ?? data?.name;
+          if (memberLabel) {
+            if (!groupMembers.has(parentId)) {
+              groupMembers.set(parentId, new Set());
+            }
+            groupMembers.get(parentId)?.add(memberLabel);
+          }
+        }
+      });
+
+      const groupLines = Array.from(groupMembers.entries()).map(([groupId, members]) => {
+        const groupName = groupLabels.get(groupId) ?? groupId;
+        return `${groupName}: ${Array.from(members).join(', ')}`;
+      });
+
+      const sections = [];
+      if (triples.length > 0) {
+        sections.push(triples.join('\n'));
+      }
+      if (groupLines.length > 0) {
+        sections.push(groupLines.join('\n'));
+      }
+      if (sections.length > 0) {
+        return sections.join('\n');
+      }
+
+      return JSON.stringify(parsedKg, null, 2);
     }
 
     return String(kg);
   }
 
-  async indexProject(projectId: number): Promise<void> {
-    const project = await this.projectService.getKgById(projectId, { id: 0 } as any);
+  async create(dto: RagCreateDto, user: User): Promise<Rag> {
+    const project = await this.projectService.getById(dto.projectId, user);
 
-    if (!project || !project.kg) {
-      throw new Error('Project or KG not found');
+    const rag = new Rag();
+    rag.project = project;
+    rag.user = user;
+
+    try {
+      return await this.repo.save(rag);
+    } catch (e) {
+      throw new InternalServerErrorException();
     }
-
-    // Extrai texto do campo KG
-    const kgText = this.extractTextFromKG(project.kg);
-
-    if (!kgText) {
-      throw new Error('No text found in KG field');
-    }
-
-
-    // Chunking do texto
-    const chunks = this.chunkText(kgText);
-    const embeddings = await this.embeddingService.generateEmbeddings(chunks);
-
-    // Prepara documentos para indexação
-    const documentChunks = chunks.map((chunk, idx) => ({
-      id: `project_${projectId}_chunk_${idx}`,
-      text: chunk,
-      metadata: {
-        projectId,
-        projectName: project.name,
-        chunkIndex: idx,
-        totalChunks: chunks.length,
-      },
-    }));
-
-    //await this.vectorStore.addDocuments(documentChunks, embeddings);
   }
 
-  async query(question: string): Promise<string> {
-    const questionEmbedding = await this.embeddingService.generateEmbedding(question);
-    const relevantDocs = new Array();//await this.vectorStore.search(questionEmbedding, 5);
+  async getById(id: number, user: User): Promise<Rag> {
+    const rag = await this.repo.getById(id, user);
+    if (!rag) {
+      throw new NotFoundException(this.i18n.t('msg.recordNotFound', { args: { id } }));
+    }
+    return rag;
+  }
 
-    const context = relevantDocs.map(doc => doc.text).join('\n\n');
+  async getAll(user: User): Promise<Rag[]> {
+    return await this.repo.getAll(user);
+  }
 
-    const systemPrompt = `Você é um assistente útil que responde perguntas baseado no contexto fornecido.
-      Use apenas as informações do contexto para responder. Se a resposta não estiver no contexto, diga que não tem essa informação.`;
+  async update(id: number, dto: RagCreateDto, user: User): Promise<Rag> {
+    const rag = await this.getById(id, user);
+    const project = await this.projectService.getById(dto.projectId, user);
 
-    const userPrompt = `Contexto:
-      ${context}
-        
-      Pergunta: ${question}
+    rag.project = project;
+    return this.repo.save(rag);
+  }
 
-      Resposta:`;
+  async delete(id: number, user: User): Promise<void> {
+    await this.getById(id, user);
 
+    const result = await this.repo.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(this.i18n.t('msg.recordNotFound'));
+    }
+  }
+
+  async getMessageById(id: number, user: User): Promise<Rag> {
+    const rag = await this.repo.getMessageById(id, user);
+    if (!rag) {
+      throw new NotFoundException(this.i18n.t('msg.recordNotFound', { args: { id } }));
+    }
+    return rag;
+  }
+
+  async query(dto: RagQueryDto, user: User): Promise<string> {
+    const { question, projectId, ragId } = dto;
+    const lang = I18nContext.current()?.lang;
+    const project = await this.projectService.getKgById(projectId, user);
+
+
+    if (!project) {
+      throw new NotFoundException(this.i18n.t('msg.recordNotFound', {
+        lang,
+        args: { id: projectId },
+      }));
+    }
+    if (!project.kg) {
+      throw new NotFoundException(this.i18n.t('msg.project.kgNotFound', {
+        lang,
+        args: { id: projectId },
+      }));
+    }
+
+    const rag = await this.getById(ragId, user);
+    if (!rag) {
+      throw new NotFoundException(this.i18n.t('msg.recordNotFound', { args: { id: ragId } }));
+    }
+
+    const context = [
+      this.extractTextFromKG(project.kg),
+    ].filter(Boolean).join('\n\n');
+    const systemPrompt = this.i18n.t('msg.rag.prompt.system', { lang });
+    const userPrompt = this.i18n.t('msg.rag.prompt.user', {
+      lang,
+      args: { context, question },
+    });
+
+    dto.maxTokens = dto.maxTokens ?? 500;
+    const resolvedModel = dto.model ?? (config.has('llm.model') ? config.get<string>('llm.model') : undefined);
     const answer = await this.llmProvider.generateChatCompletion([
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
     ], {
-      temperature: 0.7,
-      maxTokens: 500,
+      temperature: dto.temperature,
+      maxTokens: dto.maxTokens,
+      model: resolvedModel,
+      topP: dto.topP,
     });
 
-    return answer;
+    const maxAnswerLength = this.getAnswerMaxLength();
+    let trimmedAnswer = answer;
+    if (maxAnswerLength && answer.length > maxAnswerLength) {
+      this.logger.warn(
+        `[RAG] answer trimmed: length=${answer.length} max=${maxAnswerLength} ` +
+        `projectId=${projectId} ragId=${ragId} model=${resolvedModel ?? 'default'}`,
+      );
+      trimmedAnswer = answer.slice(0, maxAnswerLength);
+    }
+
+    dto.question = question;
+    dto.answer = trimmedAnswer;
+    dto.model = resolvedModel;
+
+
+    await this.ragMessageService.create(dto, user, project, rag);
+
+    return trimmedAnswer;
   }
 }

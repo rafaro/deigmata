@@ -10,7 +10,6 @@ class MyKgView {
 
   filterElements(cy) {
     const res = cy.value.filter('node[label > "COVID-19"]')
-    console.log(res)
     return res
   }
 

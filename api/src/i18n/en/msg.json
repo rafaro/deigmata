@@ -3,12 +3,43 @@
   "recordNotFound": "Record {id} not found",
   "alreadyRegistered": "This {desc} is already registered.",
   "noRecordRemoved": "No record removed",
+  "noRecordsFoundAdmin": "No records found. (SPR)",
   "invalidCredentials": "Invalid username or password.",
   "authNotConfirmed": "Your authentication has not been confirmed.",
   "email": {
     "alreadyRegistered": "This email is already registered.",
     "alreadyConfirmed": "Your email is already confirmed.",
-    "passwordResetFailed": "It was not possible to send the password reset to this email."
+    "passwordResetFailed": "It was not possible to send the password reset to this email.",
+    "notConfirmed": "Your email has not been confirmed.",
+    "invalidRecoveryLink": "This link is not valid. Request a new link or check your email inbox."
+  },
+  "password": {
+    "changeFailed": "Unable to change your password. Please try again later."
+  },
+  "cors": {
+    "notAllowed": "Not allowed by CORS."
+  },
+  "llm": {
+    "openai": {
+      "apiKeyMissing": "OpenAI API key is not configured; LLM features are disabled until a key is provided."
+    },
+    "anthropic": {
+      "apiKeyMissing": "Anthropic API key is not configured; LLM features are disabled until a key is provided.",
+      "embeddingsUnsupported": "Anthropic does not provide native embeddings. Use OpenAI or another provider for embeddings."
+    }
+  },
+  "rag": {
+    "prompt": {      
+      "systemStrict": "You are a helpful assistant that answers questions using the provided context only. If the answer is not in the context, say that you do not have that information.",
+      "system": "Respond primarily based on the provided context, while allowing variation in the form of presentation, ordering, or grouping.",
+      "user": "Context:\n{context}\n\nQuestion: {question}\n\nAnswer:"
+    },
+    "error": {
+      "kgMissing": "Project KG not found or empty for project {projectId}."
+    }
+  },
+  "ragMessage": {
+    "projectMismatch": "RAG does not belong to project {projectId}."
   }
   
 }

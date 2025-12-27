@@ -2,12 +2,8 @@
   <q-page class="flex flex-center"> Init data</q-page>
 </template>
 
-<script>
+<script setup>
   import { api } from 'boot/axios'
-  export default {
-    setup() {
-      api.post('project/init')
-      api.post('user/init')
-    },
-  }
+  api.post('project/init')
+  api.post('user/init')
 </script>

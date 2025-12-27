@@ -6,8 +6,8 @@ export class AnthropicProvider implements ILLMProvider {
   private apiKey: string;
   private baseUrl = 'https://api.anthropic.com/v1';
 
-  constructor() {
-    this.apiKey = process.env.ANTHROPIC_API_KEY;
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
   }
 
   async generateEmbedding(text: string): Promise<number[]> {
@@ -18,6 +18,8 @@ export class AnthropicProvider implements ILLMProvider {
   async generateChatCompletion(messages: ChatMessage[], options?: ChatOptions): Promise<string> {
     const systemMessages = messages.filter(m => m.role === 'system');
     const userMessages = messages.filter(m => m.role !== 'system');
+    const nucleusSampling =
+      options?.topP !== undefined ? { top_p: options.topP } : {};
 
     const response = await fetch(`${this.baseUrl}/messages`, {
       method: 'POST',
@@ -30,6 +32,7 @@ export class AnthropicProvider implements ILLMProvider {
         model: options?.model || 'claude-3-5-sonnet',
         max_tokens: options?.maxTokens || 500,
         system: systemMessages.map(m => m.content).join('\n'),
+        ...nucleusSampling,
         messages: userMessages.map(m => ({ role: m.role, content: m.content })),
       }),
     });

@@ -1,7 +1,8 @@
 server:
   port: 3000
   cors: true
-  
+  timezone: 'America/Sao_Paulo'
+
 origin:
   - 'http://localhost:80'
   - 'http://localhost'

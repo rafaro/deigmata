@@ -12,4 +12,5 @@ export interface ChatOptions {
   temperature?: number;
   maxTokens?: number;
   model?: string;
+  topP?: number;
 }

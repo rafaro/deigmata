@@ -38,7 +38,7 @@
   </q-page>
 </template>
 
-<script>
+<script setup>
   import { ref } from 'vue'
   import { api } from 'boot/axios'
   import { service } from 'boot/service'
@@ -46,41 +46,33 @@
   import { useI18n } from 'vue-i18n'
   import ImportData from 'components/ImportData.vue'
 
-  export default {
-    components: {
-      ImportData,
-    },
-    props: ['id'],
-    setup(props) {
-      const data = ref({})
-      const router = useRouter()
-      const { t } = useI18n()
+  const props = defineProps(['id'])
 
-      const handleImportedData = (importedData) => {
-        // Mescla os dados importados com os dados existentes
-        data.value.kg = importedData
-      }
-      const submit = () => {
-        console.log('Submitting data:', data.value)
-        api
-          .put(`project/${props.id}`, data.value)
-          .then(() => {
-            service.msgGreen(t('success'))
-            router.push({ name: 'project' })
-          })
-          .catch((e) => {
-            service.msgError(e.response.data.message)
-          })
-      }
-      api
-        .get(`project/${props.id}`)
-        .then((response) => {
-          data.value = response.data
-        })
-        .catch((e) => {
-          service.msgError(e.response.data.message)
-        })
-      return { data, submit, router, t, handleImportedData }
-    },
+  const data = ref({})
+  const router = useRouter()
+  const { t } = useI18n()
+
+  const handleImportedData = (importedData) => {
+    // Mescla os dados importados com os dados existentes
+    data.value.kg = importedData
   }
+  const submit = () => {
+    api
+      .put(`project/${props.id}`, data.value)
+      .then(() => {
+        service.msgGreen(t('success'))
+        router.push({ name: 'project' })
+      })
+      .catch((e) => {
+        service.msgError(e.response.data.message)
+      })
+  }
+  api
+    .get(`project/${props.id}`)
+    .then((response) => {
+      data.value = response.data
+    })
+    .catch((e) => {
+      service.msgError(e.response.data.message)
+    })
 </script>

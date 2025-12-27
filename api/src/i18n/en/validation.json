@@ -64,5 +64,64 @@
     "name": {
       "maxLength": "Name must be shorter than 100 characters."
     }
+  },
+  "rag": {
+    "projectId": {
+      "required": "Project id is required."
+    },
+    "question": {
+      "required": "Question is required."
+    },
+    "model": {
+      "required": "Model is required.",
+      "maxLength": "Model must be shorter than 100 characters."
+    },
+    "messages": {
+      "array": "Messages must be an array.",
+      "required": "At least one message is required.",
+      "role": {
+        "invalid": "Message role must be system, user or assistant."
+      },
+      "content": {
+        "required": "Message content is required."
+      }
+    },
+    "temperature": {
+      "number": "Temperature must be a number.",
+      "min": "Temperature must be greater than or equal to 0."
+    },
+    "maxTokens": {
+      "number": "max_tokens must be an integer.",
+      "min": "max_tokens must be greater than or equal to 1."
+    }
+  },
+  "ragMessage": {
+    "projectId": {
+      "required": "Project id is required."
+    },
+    "ragId": {
+      "required": "RAG id is required."
+    },
+    "model": {
+      "required": "Model is required.",
+      "maxLength": "Model must be at most 100 characters."
+    },
+    "question": {
+      "required": "Question is required.",
+      "maxLength": "Question must be at most 200 characters."
+    },
+    "temperature": {
+      "number": "Temperature must be a number.",
+      "min": "Temperature must be greater than or equal to 0."
+    },
+    "maxTokens": {
+      "number": "max_tokens must be an integer.",
+      "min": "max_tokens must be greater than or equal to 1."
+    },
+    "nucleusSampling": {
+      "number": "Nucleus sampling must be a number.",
+      "min": "Nucleus sampling must be greater than or equal to 0.1.",
+      "max": "Nucleus sampling must be less than or equal to 1.0."
+    }
   }
 }

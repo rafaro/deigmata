@@ -74,38 +74,34 @@
   </q-page>
 </template>
 
-<script>
-  import { ref } from 'vue'
+<script setup>
+  import { computed, ref } from 'vue'
   import { api } from 'boot/axios'
   import { useI18n } from 'vue-i18n'
-  export default {
-    setup() {
-      const { t } = useI18n()
 
-      const cols = [
-        { name: 'id', field: 'id', label: 'ID', align: 'left', sortable: true },
-        {
-          name: 'name',
-          field: 'name',
-          label: t('name'),
-          align: 'left',
-          sortable: true,
-        },
-      ]
+  const { t } = useI18n()
 
-      const data = ref([])
-      const loading = ref(true)
-
-      api
-        .get('assign')
-        .then((response) => {
-          data.value = response.data
-          loading.value = false
-        })
-        .catch(() => {
-          loading.value = false
-        })
-      return { data, cols, loading, t }
+  const cols = computed(() => [
+    { name: 'id', field: 'id', label: 'ID', align: 'left', sortable: true },
+    {
+      name: 'name',
+      field: 'name',
+      label: t('name'),
+      align: 'left',
+      sortable: true,
     },
-  }
+  ])
+
+  const data = ref([])
+  const loading = ref(true)
+
+  api
+    .get('assign')
+    .then((response) => {
+      data.value = response.data
+      loading.value = false
+    })
+    .catch(() => {
+      loading.value = false
+    })
 </script>

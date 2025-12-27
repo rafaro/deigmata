@@ -10,44 +10,40 @@
   </q-page>
 </template>
 
-<script>
+<script setup>
   import { ref } from 'vue'
   import { api } from 'boot/axios'
   import { useRouter } from 'vue-router'
   import { service } from 'boot/service'
   import { useI18n } from 'vue-i18n'
-  export default {
-    // name: 'PageName',
-    props: ['id'],
-    setup(props) {
-      const desc = ref('')
-      const router = useRouter()
-      const { t } = useI18n()
-      const del = (deleteConfirm) => {
-        if (deleteConfirm) {
-          api
-            .delete(`project/${props.id}`)
-            .then(() => {
-              service.msgGreen(t('success'))
-            })
-            .catch((error) => {
-              service.msgError(error.response.data.message)
-            })
-        } else {
-          service.msgRed(t('failed'))
-        }
-        router.back()
-      }
+
+  const props = defineProps(['id'])
+
+  const desc = ref('')
+  const router = useRouter()
+  const { t } = useI18n()
+  const del = (deleteConfirm) => {
+    if (deleteConfirm) {
       api
-        .get(`project/${props.id}`)
-        .then((response) => {
-          desc.value = `Project ${props.id} - ${response.data.name}`
+        .delete(`project/${props.id}`)
+        .then(() => {
+          service.msgGreen(t('success'))
         })
         .catch((error) => {
-          router.back()
           service.msgError(error.response.data.message)
         })
-      return { desc, del, t }
-    },
+    } else {
+      service.msgRed(t('failed'))
+    }
+    router.back()
   }
+  api
+    .get(`project/${props.id}`)
+    .then((response) => {
+      desc.value = `Project ${props.id} - ${response.data.name}`
+    })
+    .catch((error) => {
+      router.back()
+      service.msgError(error.response.data.message)
+    })
 </script>

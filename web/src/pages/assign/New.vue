@@ -26,31 +26,26 @@
   </q-page>
 </template>
 
-<script>
+<script setup>
   import { ref } from 'vue'
   import { api } from 'boot/axios'
   import { service } from 'boot/service'
   import { useRouter } from 'vue-router'
   import { useI18n } from 'vue-i18n'
 
-  export default {
-    setup() {
-      const data = ref({})
-      const router = useRouter()
-      const { t } = useI18n()
+  const data = ref({})
+  const router = useRouter()
+  const { t } = useI18n()
 
-      const submit = () => {
-        api
-          .post('assign', data.value)
-          .then(() => {
-            service.msgGreen(t('success'))
-            router.push({ name: 'assign' })
-          })
-          .catch((e) => {
-            service.msgError(e.response.data.message)
-          })
-      }
-      return { data, submit, router, t }
-    },
+  const submit = () => {
+    api
+      .post('assign', data.value)
+      .then(() => {
+        service.msgGreen(t('success'))
+        router.push({ name: 'assign' })
+      })
+      .catch((e) => {
+        service.msgError(e.response.data.message)
+      })
   }
 </script>

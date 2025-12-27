@@ -85,58 +85,54 @@
   </q-page>
 </template>
 
-<script>
-  import { ref } from 'vue'
+<script setup>
+  import { computed, ref } from 'vue'
   import { useRouter } from 'vue-router'
   import { api } from 'boot/axios'
   import { useI18n } from 'vue-i18n'
   import { useProjectStore } from 'stores/project'
   import { service } from 'boot/service'
-  export default {
-    setup() {
-      const { t } = useI18n()
-      const store = useProjectStore()
-      const router = useRouter()
 
-      const cols = [
-        { name: 'id', field: 'id', label: 'ID', align: 'left', sortable: true },
-        {
-          name: 'name',
-          field: 'name',
-          label: t('name'),
-          align: 'left',
-          sortable: true,
-        },
-        {
-          name: 'layout',
-          field: 'layout',
-          label: 'layout',
-          sortable: true,
-          align: 'left',
-        },
-      ]
+  const { t } = useI18n()
+  const store = useProjectStore()
+  const router = useRouter()
 
-      const data = ref([])
-      const loading = ref(true)
-      const select = (id, name, layout) => {
-        store.setProject({ id, name, layout })
-        service.msgGreen(t('projectSelectedSuccessfully'))
-      }
-      const goToKg = (row) => {
-        select(row.id, row.name, row.layout)
-        router.push({ name: 'kg' })
-      }
-
-      api
-        .get('project')
-        .then((response) => {
-          data.value = response.data
-          loading.value = false
-        })
-        .catch(() => {
-          loading.value = false
-        })
-      return { data, cols, loading, select, goToKg, t }
+  const cols = computed(() => [
+    { name: 'id', field: 'id', label: 'ID', align: 'left', sortable: true },
+    {
+      name: 'name',
+      field: 'name',
+      label: t('name'),
+      align: 'left',
+      sortable: true,
     },
+    {
+      name: 'layout',
+      field: 'layout',
+      label: 'layout',
+      sortable: true,
+      align: 'left',
+    },
+  ])
+
+  const data = ref([])
+  const loading = ref(true)
+  const select = (id, name, layout) => {
+    store.setProject({ id, name, layout })
+    service.msgGreen(t('projectSelectedSuccessfully'))
   }
+  const goToKg = (row) => {
+    select(row.id, row.name, row.layout)
+    router.push({ name: 'kg' })
+  }
+
+  api
+    .get('project')
+    .then((response) => {
+      data.value = response.data
+      loading.value = false
+    })
+    .catch(() => {
+      loading.value = false
+    })
 </script>

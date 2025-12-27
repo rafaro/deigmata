@@ -9,18 +9,6 @@
               <div class="text-body1 text-white rag-hero-subtitle">
                 {{ t('rag.historySubtitle') }}
               </div>
-              <div class="row q-col-gutter-sm q-mt-sm">
-                <div class="col-auto">
-                  <q-chip color="white" text-color="primary" icon="history" outline>
-                    {{ t('rag.runsList') }}
-                  </q-chip>
-                </div>
-                <div class="col-auto">
-                  <q-chip color="white" text-color="primary" icon="bolt" outline>
-                    rerank &amp; guardrails
-                  </q-chip>
-                </div>
-              </div>
             </div>
             <div class="col-auto">
               <div class="q-gutter-sm">
@@ -29,7 +17,7 @@
                   text-color="primary"
                   icon="play_circle"
                   :label="t('rag.newRunMenu')"
-                  :to="{ name: 'rag/execute' }"
+                  @click="newRun"
                 />
               </div>
             </div>
@@ -45,7 +33,7 @@
               <div class="text-caption text-grey-7">{{ t('rag.historyFilters') }}</div>
             </div>
             <div class="row q-col-gutter-sm">
-              <div class="col-12 col-sm-auto">
+              <!-- <div class="col-12 col-sm-auto">
                 <q-select
                   v-model="filterStatus"
                   :options="statusOptions"
@@ -55,7 +43,7 @@
                   map-options
                   :label="t('rag.statusFilter')"
                 />
-              </div>
+              </div> -->
               <div class="col-12 col-sm-auto">
                 <q-select
                   v-model="filterProject"
@@ -108,14 +96,6 @@
                     :label="t('rag.openRun')"
                     @click="openRun(props.row)"
                   />
-                  <q-btn
-                    dense
-                    color="secondary"
-                    icon="play_arrow"
-                    flat
-                    :label="t('rag.duplicateRun')"
-                    @click="openRun(props.row, true)"
-                  />
                 </div>
               </q-td>
             </template>
@@ -131,72 +111,62 @@
   import { useRouter } from 'vue-router'
   import { useI18n } from 'vue-i18n'
   import { useProjectStore } from 'stores/project'
+  import { date } from 'quasar'
+  import { service } from 'boot/service'
+  import { api } from 'boot/axios'
 
   const { t } = useI18n()
   const router = useRouter()
-  const projectStore = useProjectStore()
+  const prjStore = useProjectStore()
+  const runs = ref([])
+  const loading = ref(true)
+  const newRun = () => {
+    api
+      .post('rag', { projectId: prjStore.getProject.id || null })
+      .then((response) => {
+        const ragId = response?.data?.id
+        service.msgGreen(t('success'))
+        const params = ragId ? { id: String(ragId) } : undefined
+        router.push({ name: 'rag/run', params })
+      })
+      .catch((e) => {
+        service.msgError(e.response.data.message)
+      })
+  }
 
-  const runs = ref([
+  api
+    .get('rag')
+    .then((response) => {
+      runs.value = response.data
+      loading.value = false
+    })
+    .catch(() => {
+      loading.value = false
+    })
+
+  const columns = computed(() => [
+    { name: 'id', field: 'id', label: 'ID', align: 'left' },
+    { name: 'project', field: (row) => row.project.name, label: t('project'), align: 'left' },
+    { name: 'prompt', field: 'firstQuestion', label: t('rag.seedQuestion'), align: 'left' },
     {
-      id: 'RAG-2301',
-      project: 'Grafo de Incidentes',
-      projectId: 12,
-      status: 'done',
-      prompt: 'Resumo executivo de riscos e dependências críticas.',
-      duration: '01:12',
-      executedAt: '2024-05-18 10:22',
-      topK: 5,
-      rerank: true,
-      score: 0.87,
+      name: 'createdat',
+      field: (row) => date.formatDate(row.createdat, 'YYYY-MM-DD HH:mm:ss'),
+      label: t('rag.createdAt'),
+      align: 'left',
     },
-    {
-      id: 'RAG-2302',
-      project: 'Design System',
-      projectId: 7,
-      status: 'running',
-      prompt: 'Checklist para rollout seguro do novo token set.',
-      duration: '00:15',
-      executedAt: '2024-05-18 14:09',
-      topK: 8,
-      rerank: true,
-      score: 0.8,
-    },
-    {
-      id: 'RAG-2303',
-      project: 'FinOps Playbook',
-      projectId: 4,
-      status: 'queued',
-      prompt: 'Como justificar aumento de custo no cluster de BI?',
-      duration: '—',
-      executedAt: '2024-05-19 09:41',
-      topK: 3,
-      rerank: false,
-      score: 0.76,
-    },
-    {
-      id: 'RAG-2304',
-      project: 'Plataforma de Pagamentos',
-      projectId: 9,
-      status: 'failed',
-      prompt: 'Roteiro de rollback para a versão 2.4 do billing.',
-      duration: '00:03',
-      executedAt: '2024-05-19 10:02',
-      topK: 6,
-      rerank: true,
-      score: 0.0,
-    },
+    { name: 'actions', field: 'actions', label: t('rag.actions'), align: 'right' },
   ])
 
-  const columns = [
-    { name: 'id', field: 'id', label: 'ID', align: 'left' },
-    { name: 'project', field: 'project', label: t('project'), align: 'left' },
-    { name: 'status', field: 'status', label: t('rag.runStatus'), align: 'left' },
-    { name: 'prompt', field: 'prompt', label: t('rag.seedQuestion'), align: 'left' },
-    { name: 'score', field: 'score', label: 'Score', align: 'left', format: (v) => v?.toFixed(2) },
-    { name: 'executedAt', field: 'executedAt', label: t('rag.executedAt'), align: 'left' },
-    { name: 'duration', field: 'duration', label: t('rag.duration'), align: 'left' },
-    { name: 'actions', field: 'actions', label: t('rag.actions'), align: 'right' },
-  ]
+  // const columns = [
+  //   { name: 'id', field: 'id', label: 'ID', align: 'left' },
+  //   { name: 'project', field: 'project', label: t('project'), align: 'left' },
+  //   { name: 'status', field: 'status', label: t('rag.runStatus'), align: 'left' },
+  //   { name: 'prompt', field: 'prompt', label: t('rag.seedQuestion'), align: 'left' },
+  //   { name: 'score', field: 'score', label: 'Score', align: 'left', format: (v) => v?.toFixed(2) },
+  //   { name: 'executedAt', field: 'executedAt', label: t('rag.executedAt'), align: 'left' },
+  //   { name: 'duration', field: 'duration', label: t('rag.duration'), align: 'left' },
+  //   { name: 'actions', field: 'actions', label: t('rag.actions'), align: 'right' },
+  // ]
 
   const statusMeta = computed(() => ({
     done: { label: t('rag.statusDone'), color: 'green-7', icon: 'check_circle' },
@@ -205,37 +175,43 @@
     queued: { label: t('rag.statusQueued'), color: 'grey-7', icon: 'schedule' },
   }))
 
-  const statusOptions = computed(() => [
-    { label: t('rag.statusAll'), value: 'all' },
-    { label: statusMeta.value.running?.label, value: 'running' },
-    { label: statusMeta.value.done?.label, value: 'done' },
-    { label: statusMeta.value.queued?.label, value: 'queued' },
-    { label: statusMeta.value.failed?.label, value: 'failed' },
-  ])
+  // const statusOptions = computed(() => [
+  //   { label: t('rag.statusAll'), value: 'all' },
+  //   { label: statusMeta.value.running?.label, value: 'running' },
+  //   { label: statusMeta.value.done?.label, value: 'done' },
+  //   { label: statusMeta.value.queued?.label, value: 'queued' },
+  //   { label: statusMeta.value.failed?.label, value: 'failed' },
+  // ])
 
-  const filterStatus = ref('all')
+  //const filterStatus = ref('all')
   const filterProject = ref('all')
 
   const projectFilters = computed(() => {
-    const uniques = [...new Set(runs.value.map((run) => run.project))]
+    const uniques = [...new Set(runs.value.map((run) => run.project.name))]
     const mapped = uniques.map((label) => ({ label, value: label }))
     return [{ label: t('rag.allProjects'), value: 'all' }, ...mapped]
   })
 
   const filteredRuns = computed(() =>
     runs.value.filter((run) => {
-      const matchesStatus = filterStatus.value === 'all' || run.status === filterStatus.value
-      const matchesProject = filterProject.value === 'all' || run.project === filterProject.value
-      return matchesStatus && matchesProject
+      //const matchesStatus = filterStatus.value === 'all' || run.status === filterStatus.value
+      const matchesProject =
+        filterProject.value === 'all' || run.project.name === filterProject.value
+      //return matchesStatus && matchesProject
+      return matchesProject
     })
   )
 
-  const openRun = (row, duplicate = false) => {
-    if (row.projectId) {
-      projectStore.setProject({ id: row.projectId, name: row.project, layout: row.layout || '' })
+  const openRun = (row) => {
+    if (row?.project?.id && row.project.id !== prjStore.getProject.id) {
+      prjStore.setProject({
+        id: row.project.id,
+        name: row.project.name,
+        layout: row.project.layout || '',
+      })
+      service.msgGreen(t('projectChangedSuccessfully'))
     }
-    const query = duplicate ? { prompt: row.prompt, duplicate: row.id } : { prompt: row.prompt }
-    router.push({ name: 'rag', query })
+    router.push({ name: 'rag/run', params: { id: row.id } })
   }
 
   const statusInfo = (status) =>

@@ -10,20 +10,17 @@
   </q-page>
 </template>
 
-<script>
+<script setup>
   import { service } from 'boot/service'
   import { useRouter } from 'vue-router'
   import { useUserStore } from 'stores/user'
-  export default {
-    setup() {
-      const store = useUserStore()
-      const router = useRouter()
-      if (service.getToken()) {
-        service.saveToken('')
-        service.signOut()
-        store.clearUser()
-      }
-      router.push('/')
-    },
+
+  const store = useUserStore()
+  const router = useRouter()
+  if (service.getToken()) {
+    service.saveToken('')
+    service.signOut()
+    store.clearUser()
   }
+  router.push('/')
 </script>

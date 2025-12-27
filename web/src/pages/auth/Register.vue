@@ -99,45 +99,36 @@
   </q-page>
 </template>
 
-<script>
+<script setup>
   import { ref } from 'vue'
   import { api } from 'boot/axios'
   import { service } from 'boot/service'
   import { useRouter } from 'vue-router'
   import { useI18n } from 'vue-i18n'
   import InputEmail from 'components/InputEmail.vue'
-  export default {
-    // name: 'PageName',
-    components: {
-      InputEmail,
-    },
-    setup() {
-      const data = ref({
-        name: null,
-        password: null,
-        confirmpassword: null,
-        email: null,
-        confirmemail: null,
+
+  const data = ref({
+    name: null,
+    password: null,
+    confirmpassword: null,
+    email: null,
+    confirmemail: null,
+  })
+  const loadingSubmitting = ref(false)
+  const router = useRouter()
+  const isPwd = ref(true)
+  const { t } = useI18n()
+
+  const submit = () => {
+    api
+      .post('user', data.value)
+      .then(() => {
+        service.msgGreen('Cadastro realizado com sucesso.')
+        router.push({ name: 'auth/login' })
       })
-      const loadingSubmitting = ref(false)
-      const router = useRouter()
-      const isPwd = ref(true)
-      const { t } = useI18n()
-
-      const submit = () => {
-        api
-          .post('user', data.value)
-          .then(() => {
-            service.msgGreen('Cadastro realizado com sucesso.')
-            router.push({ name: 'auth/login' })
-          })
-          .catch((e) => {
-            service.msgError(e.response.data.message)
-            router.push({ name: 'auth/login' })
-          })
-      }
-
-      return { data, submit, router, loadingSubmitting, isPwd, t }
-    },
+      .catch((e) => {
+        service.msgError(e.response.data.message)
+        router.push({ name: 'auth/login' })
+      })
   }
 </script>

@@ -111,11 +111,15 @@
               </div>
               <div class="col-12 col-md-6">
                 <q-select
-                  v-model="form.topK"
-                  :options="[3, 5, 8, 12]"
+                  v-model="form.nucleusSampling"
+                  :options="nucleusSamplingOptions"
+                  option-label="label"
+                  option-value="value"
+                  emit-value
+                  map-options
                   dense
                   outlined
-                  :label="t('rag.topK')"
+                  :label="t('rag.nucleusSampling')"
                 />
               </div>
             </div>
@@ -166,7 +170,9 @@
         <q-card class="glass-card q-pa-md">
           <div class="row items-center justify-between q-mb-sm">
             <div class="text-subtitle2">{{ t('rag.preview') }}</div>
-            <q-badge color="primary" outline>{{ form.topK }} top-k</q-badge>
+            <q-badge color="primary" outline>
+              {{ form.nucleusSampling.toFixed(1) }} {{ t('rag.nucleusSampling') }}
+            </q-badge>
           </div>
           <q-list dense>
             <q-item>
@@ -235,7 +241,7 @@
     runName: 'Execução monitorada',
     seedQuestion: 'Como o grafo representa dependências críticas entre releases?',
     mode: 'qa',
-    topK: 5,
+    nucleusSampling: 0.9,
     rerank: true,
     guardrails: true,
     temperature: 0.2,
@@ -246,6 +252,10 @@
     { label: t('rag.modeQa'), value: 'qa' },
     { label: t('rag.modeEvaluation'), value: 'evaluation' },
   ])
+  const nucleusSamplingOptions = Array.from({ length: 10 }, (_, index) => {
+    const value = Number(((index + 1) / 10).toFixed(1))
+    return { label: value.toFixed(1), value }
+  })
 
   const runModeLabel = computed(
     () => modeOptions.value.find((opt) => opt.value === form.value.mode)?.label || ''

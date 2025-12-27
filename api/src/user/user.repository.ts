@@ -10,23 +10,23 @@ import { AuthRoles } from '../auth/auth-roles.enum';
 import { UserUpdatePwdDto } from './dto/user-update-pwd-dto';
 import { UserChangePwdDto } from './dto/user-change-pwd-dto';
 import { Pagination } from '../utils/paginate';
+import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
 export class UserRepository extends Repository<User> {
 
   readonly select = ['o.id', 'o.name'];
   readonly where = "o.status = 'A' ";
-  constructor(private ds: DataSource) {
+  constructor(
+    private ds: DataSource,
+    private readonly i18n: I18nService
+  ) {
     super(User, ds.createEntityManager());
   }
   async validateUserPassword(
     authCrendentialsDto: AuthCredentialsDto,
   ): Promise<JwtPayload> {
     const { email, password } = authCrendentialsDto;
-    //Rafael Rocha - 06/09/2020
-    //Usar  findone em campo que não é PK causa erro
-    //QueryFailedError: ORA-00933: SQL command not properly ended
-    //const objs = await this.find({ CND_EMAIL: email }).add("user.password");
     const q = this.createQueryBuilder('o');
     q.andWhere('o.email = :email', { email });
     q.addSelect(['o.password', 'o.salt', 'o.confirmemail']);
@@ -51,18 +51,6 @@ export class UserRepository extends Repository<User> {
     const q = this.createQueryBuilder('o');
     q.select([...this.select, 'e', 'c']);
     q.addOrderBy('o.name', 'ASC');
-    //const list = await q.getMany();
-    //const objs: CandidatoListaDto[] = cands.map(
-    //   c => {
-    //     const o: CandidatoListaDto = {
-    //       CND_NOME: c.CND_NOME,
-    //       CND_EMAIL: c.CND_EMAIL,
-    //       CND_CONFIRMA_EMAIL: !c.CND_CONFIRMA_EMAIL,
-    //       CND_DADOS_COMPLETO: c.canSubscribe()
-    //     };
-    //     return o;
-    //   });
-    //return list;
 
     q.limit(limit);
     q.offset(limit * (page - 1));
@@ -85,30 +73,12 @@ export class UserRepository extends Repository<User> {
   async getAllByFilterAsAdmin(user: User, dto: UserFilterDto): Promise<User[]> {
 
     if (user.role !== AuthRoles.SUPER) {
-      throw new NotFoundException('Nenhum registro encontrado. (SPR)');
+      throw new NotFoundException(this.i18n.t('msg.noRecordsFoundAdmin'));
     }
     const q = this.createQueryBuilder('o');
-    // q.innerJoinAndSelect('o.estado', 'e');
-    // q.innerJoinAndSelect('o.cidade', 'c');
-    //q.andWhere('o.role = :role ', { role: `%${CND_NOME}%` });
-    //q.andWhere('o.role = :role ', { role: AuthRoles.PSI });
 
     q.addOrderBy('o.id', 'DESC');
-    //q.skip
-    //q.take
-    //q.offset
-    //q.limit    
     const list = await q.getMany();
-    // const objs: CandidatoListaDto[] = cands.map(
-    //   c => {
-    //     const o: CandidatoListaDto = {
-    //       CND_NOME: c.CND_NOME,
-    //       CND_EMAIL: c.CND_EMAIL,
-    //       CND_CONFIRMA_EMAIL: !c.CND_CONFIRMA_EMAIL,
-    //       CND_DADOS_COMPLETO: c.canSubscribe()
-    //     };
-    //     return o;
-    //   });
     return list;
   }
 
@@ -120,7 +90,7 @@ export class UserRepository extends Repository<User> {
 
     const obj = await q.getOne();
     if (!obj) {
-      throw new ConflictException('Seu email não foi confirmado');
+      throw new ConflictException(this.i18n.t('msg.email.notConfirmed'));
     } else {
       obj.confirmemail = null;
       obj.role = AuthRoles.USER;
@@ -129,7 +99,7 @@ export class UserRepository extends Repository<User> {
       } catch (e) {
         switch (e.response.name) {
           case 'QueryFailedError':
-            throw new ConflictException('Este email já está cadastrado.');
+            throw new ConflictException(this.i18n.t('msg.email.alreadyRegistered'));
           default:
             throw new InternalServerErrorException();
         }
@@ -161,7 +131,7 @@ export class UserRepository extends Repository<User> {
     const obj = await q.getOne();
     if (!obj || obj.recoverypwduntil < new Date()) {
       throw new ConflictException(
-        'Este link não é válido. Solicite novo link ou verifique sua caixa de entrada do email.',
+        this.i18n.t('msg.email.invalidRecoveryLink'),
       );
     } else {
       obj.salt = await bcrypt.genSalt();
@@ -175,7 +145,7 @@ export class UserRepository extends Repository<User> {
       } catch (e) {
         switch (e.response.name) {
           case 'QueryFailedError':
-            throw new ConflictException('Este email já está cadastrado.');
+            throw new ConflictException(this.i18n.t('msg.email.alreadyRegistered'));
           default:
             throw new InternalServerErrorException();
         }
@@ -198,13 +168,13 @@ export class UserRepository extends Repository<User> {
       } catch (e) {
         switch (e.response.name) {
           case 'QueryFailedError':
-            throw new ConflictException('Este email já está cadastrado.');
+            throw new ConflictException(this.i18n.t('msg.email.alreadyRegistered'));
           default:
             throw new InternalServerErrorException();
         }
       }
     } else {
-      throw new NotFoundException('Não foi possível mudar sua senha. Tente mais tarde');
+      throw new NotFoundException(this.i18n.t('msg.password.changeFailed'));
     }
 
     return;

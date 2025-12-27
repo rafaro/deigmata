@@ -64,5 +64,64 @@
     "name": {
       "maxLength": "Nome precisa ser menor que 100 caracteres."
     }
+  },
+  "rag": {
+    "projectId": {
+      "required": "Id do projeto é obrigatório."
+    },
+    "question": {
+      "required": "Pergunta é obrigatória."
+    },
+    "model": {
+      "required": "Modelo é obrigatório.",
+      "maxLength": "Modelo precisa ser menor que 100 caracteres."
+    },
+    "messages": {
+      "array": "Mensagens devem ser um array.",
+      "required": "Pelo menos uma mensagem é obrigatória.",
+      "role": {
+        "invalid": "Papel da mensagem deve ser system, user ou assistant."
+      },
+      "content": {
+        "required": "Conteúdo da mensagem é obrigatório."
+      }
+    },
+    "temperature": {
+      "number": "Temperatura deve ser um número.",
+      "min": "Temperatura deve ser maior ou igual a 0."
+    },
+    "maxTokens": {
+      "number": "max_tokens deve ser um número inteiro.",
+      "min": "max_tokens deve ser maior ou igual a 1."
+    }
+  },
+  "ragMessage": {
+    "projectId": {
+      "required": "Id do projeto e obrigatorio."
+    },
+    "ragId": {
+      "required": "Id do RAG e obrigatorio."
+    },
+    "model": {
+      "required": "Modelo e obrigatorio.",
+      "maxLength": "Modelo deve ter no maximo 100 caracteres."
+    },
+    "question": {
+      "required": "Pergunta e obrigatoria.",
+      "maxLength": "Pergunta deve ter no maximo 200 caracteres."
+    },
+    "temperature": {
+      "number": "Temperatura deve ser um numero.",
+      "min": "Temperatura deve ser maior ou igual a 0."
+    },
+    "maxTokens": {
+      "number": "max_tokens deve ser um numero inteiro.",
+      "min": "max_tokens deve ser maior ou igual a 1."
+    },
+    "nucleusSampling": {
+      "number": "Amostragem por núcleo deve ser um numero.",
+      "min": "Amostragem por núcleo deve ser maior ou igual a 0.1.",
+      "max": "Amostragem por núcleo deve ser menor ou igual a 1.0."
+    }
   }
 }

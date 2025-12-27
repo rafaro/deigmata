@@ -42,7 +42,7 @@
   </q-page>
 </template>
 
-<script>
+<script setup>
   import { ref } from 'vue'
   import ImportData from 'components/ImportData.vue'
   import { api } from 'boot/axios'
@@ -50,30 +50,22 @@
   import { useRouter } from 'vue-router'
   import { useI18n } from 'vue-i18n'
 
-  export default {
-    components: {
-      ImportData,
-    },
-    setup() {
-      const data = ref({})
-      const router = useRouter()
-      const { t } = useI18n()
-      const handleImportedData = (importedData) => {
-        // Mescla os dados importados com os dados existentes
-        data.value.kg = importedData
-      }
-      const submit = () => {
-        api
-          .post('project', data.value)
-          .then(() => {
-            service.msgGreen(t('success'))
-            router.push({ name: 'project' })
-          })
-          .catch((e) => {
-            service.msgError(e.response.data.message)
-          })
-      }
-      return { data, submit, router, t, handleImportedData }
-    },
+  const data = ref({})
+  const router = useRouter()
+  const { t } = useI18n()
+  const handleImportedData = (importedData) => {
+    // Mescla os dados importados com os dados existentes
+    data.value.kg = importedData
+  }
+  const submit = () => {
+    api
+      .post('project', data.value)
+      .then(() => {
+        service.msgGreen(t('success'))
+        router.push({ name: 'project' })
+      })
+      .catch((e) => {
+        service.msgError(e.response.data.message)
+      })
   }
 </script>

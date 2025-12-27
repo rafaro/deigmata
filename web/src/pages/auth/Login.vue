@@ -74,7 +74,7 @@
   </q-page>
 </template>
 
-<script>
+<script setup>
   import InputEmail from 'components/InputEmail.vue'
   import { api } from 'boot/axios'
   import { service } from 'boot/service'
@@ -83,45 +83,36 @@
   import { useUserStore } from 'stores/user'
   import { useI18n } from 'vue-i18n'
 
-  export default {
-    components: {
-      InputEmail,
-    },
-    setup() {
-      //const $q = useQuasar()
-      const name = ref('login')
-      const login = ref({ email: '', password: '' })
-      const isPwd = ref(true)
-      const loadingSubmitting = ref(false)
-      const router = useRouter()
-      const store = useUserStore()
-      const { t } = useI18n()
+  //const $q = useQuasar()
+  const login = ref({ email: '', password: '' })
+  const isPwd = ref(true)
+  const loadingSubmitting = ref(false)
+  const router = useRouter()
+  const store = useUserStore()
+  const { t } = useI18n()
 
-      //const cookieToken = $q.cookies.get('token')
-      const cookieToken = service.getToken()
-      if (cookieToken) {
+  //const cookieToken = $q.cookies.get('token')
+  const cookieToken = service.getToken()
+  if (cookieToken) {
+    store.initUser()
+    loadingSubmitting.value = false
+    router.push({ name: 'index' })
+  }
+  const auth = () => {
+    loadingSubmitting.value = true
+    api
+      .post('auth', login.value)
+      .then((res) => {
+        service.saveToken(res.data.accessToken)
+        //$q.cookies.set('token', res.data.accessToken)
         store.initUser()
+
         loadingSubmitting.value = false
         router.push({ name: 'index' })
-      }
-      const auth = () => {
-        loadingSubmitting.value = true
-        api
-          .post('auth', login.value)
-          .then((res) => {
-            service.saveToken(res.data.accessToken)
-            //$q.cookies.set('token', res.data.accessToken)
-            store.initUser()
-
-            loadingSubmitting.value = false
-            router.push({ name: 'index' })
-          })
-          .catch(() => {
-            service.msgError(t('incorrectCredentials'))
-            loadingSubmitting.value = false
-          })
-      }
-      return { name, login, isPwd, loadingSubmitting, auth, t }
-    },
+      })
+      .catch(() => {
+        service.msgError(t('incorrectCredentials'))
+        loadingSubmitting.value = false
+      })
   }
 </script>

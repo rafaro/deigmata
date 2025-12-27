@@ -3,12 +3,43 @@
   "recordNotFound": "Registro {id} não encontrado",
   "alreadyRegistered": "Este {desc} já está cadastrado.",
   "noRecordRemoved": "Nenhum registro removido",
+  "noRecordsFoundAdmin": "Nenhum registro encontrado. (SPR)",
   "invalidCredentials": "Usuário ou senha incorreto.",
   "authNotConfirmed": "Sua autenticação não foi confirmada.",
   "email": {
     "alreadyRegistered": "Este email já está cadastrado.",
     "alreadyConfirmed": "Seu email já está confirmado.",
-    "passwordResetFailed": "Não foi possível enviar a alteração de senha para este email."
+    "passwordResetFailed": "Não foi possível enviar a alteração de senha para este email.",
+    "notConfirmed": "Seu email não foi confirmado.",
+    "invalidRecoveryLink": "Este link não é válido. Solicite novo link ou verifique sua caixa de entrada do email."
+  },
+  "password": {
+    "changeFailed": "Não foi possível mudar sua senha. Tente mais tarde"
+  },
+  "cors": {
+    "notAllowed": "Não permitido pelo CORS."
+  },
+  "llm": {
+    "openai": {
+      "apiKeyMissing": "Chave da API OpenAI não configurada; recursos de LLM estão desabilitados até informar a chave."
+    },
+    "anthropic": {
+      "apiKeyMissing": "Chave da API Anthropic não configurada; recursos de LLM estão desabilitados até informar a chave.",
+      "embeddingsUnsupported": "A Anthropic não oferece embeddings nativos. Use OpenAI ou outro provider para embeddings."
+    }
+  },
+  "rag": {
+    "prompt": {
+      "systemStrict": "Você é um assistente útil que responde perguntas baseado apenas no contexto fornecido. Se a resposta não estiver no contexto, diga que não tem essa informação.",
+      "system": "Responda prioritariamente com base no contexto fornecido, podendo variar a forma de apresentação, ordenação ou agrupamento",
+      "user": "Contexto:\n{context}\n\nPergunta: {question}\n\nResposta:"
+    },
+    "error": {
+      "kgMissing": "KG do projeto {projectId} não encontrado ou vazio."
+    }
+  },
+  "ragMessage": {
+    "projectMismatch": "RAG nao pertence ao projeto {projectId}."
   }
   
 }

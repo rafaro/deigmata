@@ -82,9 +82,10 @@ const routes = [
     meta: { auth: true, role: 'USER|SUPER' },
     children: [
       {
-        path: 'execute',
-        name: 'rag/execute',
-        component: () => import('src/pages/rag/Execute.vue'),
+        path: 'run/:id',
+        name: 'rag/run',
+        props: true,
+        component: () => import('src/pages/rag/Run.vue'),
       },
       {
         path: 'history',

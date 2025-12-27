@@ -155,7 +155,7 @@
   </q-layout>
 </template>
 
-<script>
+<script setup>
   import { onMounted, ref, reactive, computed } from 'vue'
   import { useProjectStore } from 'src/stores/project'
   import { useI18n } from 'vue-i18n'
@@ -168,95 +168,93 @@
   import Shepherd from 'shepherd.js'
   import 'shepherd.js/dist/css/shepherd.css'
 
-  export default {
-    setup() {
-      cytoscape.use(cytoscapeLasso)
-      cytoscape.use(cxtmenu)
-      cytoscape.use(coseBilkent)
-      cytoscape.use(expandCollapse)
+  cytoscape.use(cytoscapeLasso)
+  cytoscape.use(cxtmenu)
+  cytoscape.use(coseBilkent)
+  cytoscape.use(expandCollapse)
 
-      const cyContainer = ref(null)
-      const cy = ref(null)
-      const rightDrawerOpen = ref(false)
-      const zoomLevel = ref(1)
-      const elements = ref([])
-      const selectedElement = ref(null)
-      const filterText = ref('')
-      const prjStore = useProjectStore()
-      const { t } = useI18n()
-      const listElements = ref([])
-      const history = ref([])
-      const canUndo = computed(() => history.value.length > 0)
+  const cyContainer = ref(null)
+  const cy = ref(null)
+  const rightDrawerOpen = ref(false)
+  const zoomLevel = ref(1)
+  const elements = ref([])
+  const selectedElement = ref(null)
+  const filterText = ref('')
+  const prjStore = useProjectStore()
+  const { t } = useI18n()
+  const listElements = ref([])
+  const history = ref([])
+  const canUndo = computed(() => history.value.length > 0)
 
-      const metrics = reactive({
-        nodes: 0,
-        edges: 0,
-        avgDegree: 0,
-        maxDegree: 0,
-        minDegree: 0,
-        density: 0,
-        components: 0,
+  const metrics = reactive({
+    nodes: 0,
+    edges: 0,
+    avgDegree: 0,
+    maxDegree: 0,
+    minDegree: 0,
+    density: 0,
+    components: 0,
+  })
+  const prj = computed({
+    get: () => prjStore.getProject,
+  })
+  const selectedLayout = ref(prj.value.layout || 'cose')
+
+  const selectedElements = reactive({
+    nodes: [],
+    edges: [],
+  })
+
+  const optLayout = kgview.getOptLayout()
+
+  onMounted(() => {
+    renderGraph()
+  })
+
+  const renderGraph = async () => {
+    if (!cyContainer.value) {
+      console.error('Container Cytoscape não encontrado')
+      return
+    }
+    if (cy.value) {
+      cy.value.destroy()
+    }
+
+    try {
+      elements.value = await kgview.getElements(prj.value.id)
+      cy.value = cytoscape({
+        container: cyContainer.value,
+        style: kgview.getStyle(),
+        elements: elements.value,
+        layout: { name: selectedLayout.value },
+        zoom: 1,
       })
-      const prj = computed({
-        get: () => prjStore.getProject,
-      })
-      const selectedLayout = ref(prj.value.layout || 'cose')
 
-      const selectedElements = reactive({
-        nodes: [],
-        edges: [],
+      cy.value.lassoSelectionEnabled(true)
+      cy.value.on('zoom', () => {
+        zoomLevel.value = cy.value.zoom().toFixed(2)
       })
 
-      const optLayout = kgview.getOptLayout()
-
-      onMounted(() => {
-        renderGraph()
+      cy.value.on('tap', 'node, edge', (event) => {
+        getDetail(event.target)
       })
 
-      const renderGraph = async () => {
-        if (!cyContainer.value) {
-          console.error('Container Cytoscape não encontrado')
-          return
-        }
-        if (cy.value) {
-          cy.value.destroy()
-        }
-
-        try {
-          elements.value = await kgview.getElements(prj.value.id)
-          cy.value = cytoscape({
-            container: cyContainer.value,
-            style: kgview.getStyle(),
-            elements: elements.value,
-            layout: { name: selectedLayout.value },
-            zoom: 1,
-          })
-
-          cy.value.lassoSelectionEnabled(true)
-          cy.value.on('zoom', () => {
-            zoomLevel.value = cy.value.zoom().toFixed(2)
-          })
-
-          cy.value.on('tap', 'node, edge', (event) => {
-            getDetail(event.target)
-          })
-
-          cy.value.cxtmenu({
-            menuRadius: 80,
-            selector: 'node',
-            commands: [
-              {
-                content: '🔍 Detalhes',
-                select: (ele) => {
-                  getDetail(ele)
-                },
-              },
-              {
-                content: '🎨 Mudar cor',
-                select: (ele) => {
-                  ele.style('background-color', '#f00')
-                },
-              },
+      cy.value.cxtmenu({
+        menuRadius: 80,
+        selector: 'node',
+        commands: [
+          {
+            content: '🔍 Detalhes',
+            select: (ele) => {
+              getDetail(ele)
+            },
+          },
+          {
+            content: '🎨 Mudar cor',
+            select: (ele) => {
+              ele.style('background-color', '#f00')
+            },
+          },
               {
                 content: '✏️ Criar grupo',
                 select: (ele) => {
@@ -304,34 +302,6 @@
           cy.value.add(elements.value)
         }
       }
-
-      // Computa a estrutura em árvore
-      const groupedTree = computed(() => {
-        const parents = selectedElements.nodes
-          .filter((n) => !n.parent) // só os grupos (compounds ou não agrupados)
-          .map((parent) => {
-            const children = selectedElements.nodes.filter((n) => n.parent === parent.id)
-            const allChildren = parent.parent ? [] : [parent, ...children]
-
-            return {
-              id: parent.id,
-              label: parent.label || parent.id,
-              children: allChildren.map((child) => {
-                const edges = selectedElements.edges.filter((e) => e.source === child.id)
-                return {
-                  id: child.id,
-                  label: child.label || child.id,
-                  edges: edges.map((e) => ({
-                    id: e.id,
-                    label: e.label,
-                    target: e.target,
-                  })),
-                }
-              }),
-            }
-          })
-        return parents
-      })
 
       function setupDragDrop() {
         cy.value.on('free', 'node', (e) => {
@@ -412,33 +382,6 @@
 
         tour.start()
       }
-
-      return {
-        cyContainer,
-        optLayout,
-        zoomLevel,
-        selectedElement,
-        filterGraph,
-        changeLayout,
-        groupedTree,
-        rightDrawerOpen,
-        selectedLayout,
-        elements,
-        filterText,
-        t,
-        getList,
-        expand,
-        collapse,
-        listElements,
-        saveState,
-        undo,
-        canUndo,
-        calculateMetrics,
-        metrics,
-        startTour,
-      }
-    },
-  }
 </script>
 
 <style scoped>
