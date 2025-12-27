@@ -156,7 +156,7 @@
                   </div>
                 </template>
                 <template v-else>
-                  <div class="rag-message text-body2" v-html="message.text"></div>
+                  <div class="rag-message text-body2" v-html="renderMarkdown(message.text)"></div>
                   <div v-if="message.citations?.length" class="q-mt-sm flex items-center wrap">
                     <q-chip
                       v-for="citation in message.citations"
@@ -187,6 +187,7 @@
   import { useI18n } from 'vue-i18n'
   import { service } from 'boot/service'
   import { api } from 'boot/axios'
+  import MarkdownIt from 'markdown-it'
 
   const { t } = useI18n()
 
@@ -215,6 +216,11 @@
     return t('rag.temperatureExperimental')
   })
   const tuningExpanded = ref(false)
+  const markdown = new MarkdownIt({
+    html: false,
+    linkify: true,
+    breaks: true,
+  })
 
   const createStamp = (value = new Date()) => new Date(value).toLocaleString()
   const createMessage = ({ id, from, text, stamp, loading }) => ({
@@ -358,6 +364,8 @@
     conversation.value.splice(index, 1, { ...conversation.value[index], ...patch })
   }
 
+  const renderMarkdown = (value = '') => markdown.render(String(value))
+
   watch(
     () => props.id,
     () => {
@@ -472,5 +480,44 @@
 
   .rag-message {
     line-height: 1.5;
+  }
+
+  .rag-message :deep(p) {
+    margin: 0 0 0.6rem;
+  }
+
+  .rag-message :deep(p:last-child) {
+    margin-bottom: 0;
+  }
+
+  .rag-message :deep(ul),
+  .rag-message :deep(ol) {
+    margin: 0 0 0.6rem;
+    padding-left: 1.1rem;
+  }
+
+  .rag-message :deep(pre) {
+    margin: 0.4rem 0 0.6rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.08);
+    overflow-x: auto;
+  }
+
+  .rag-message :deep(code) {
+    font-family: 'SFMono-Regular', 'JetBrains Mono', Menlo, monospace;
+    font-size: 0.85em;
+  }
+
+  .rag-message :deep(blockquote) {
+    margin: 0 0 0.6rem;
+    padding-left: 0.75rem;
+    border-left: 3px solid rgba(25, 55, 109, 0.3);
+    color: #5f6f86;
+  }
+
+  .rag-message :deep(a) {
+    color: #1f6feb;
+    text-decoration: underline;
   }
 </style>

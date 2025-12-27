@@ -251,7 +251,7 @@ class MyKgView {
       {
         selector: 'node',
         style: {
-          label: 'data(id)',
+          label: 'data(label)',
           'text-valign': 'center',
           'text-halign': 'center',
           'background-color': '#3498db',

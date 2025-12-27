@@ -15,7 +15,7 @@ export class RagMessage extends BaseDefaultEntity {
   @Column({ length: 400 })
   question: string;
 
-  @Column({ length: 400 })
+  @Column({ type: 'text' })
   answer: string;
 
   @Column({ type: 'decimal', precision: 6, scale: 2, default: 0.7, nullable: true })

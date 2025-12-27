@@ -15,7 +15,7 @@ export class RagQueryDto {
 
   @IsString()
   @IsNotEmpty({ message: i18nValidationMessage('validation.ragMessage.question.required') })
-  @MaxLength(300, { message: i18nValidationMessage('validation.ragMessage.question.maxLength') })
+  @MaxLength(400, { message: i18nValidationMessage('validation.ragMessage.question.maxLength') })
   question: string;
 
   @IsOptional()

@@ -10,7 +10,6 @@ import { RagRepository } from './rag.repository';
 import { Rag } from './rag.entity';
 import { RagMessageService } from 'src/rag-message/rag-message.service';
 import * as config from 'config';
-import { RagMessage } from 'src/rag-message/rag-message.entity';
 import { DataSource } from 'typeorm';
 import { InjectDataSource } from '@nestjs/typeorm';
 
@@ -28,18 +27,6 @@ export class RagService {
     @InjectDataSource() private dataSource: DataSource,
   ) { }
 
-  private getAnswerMaxLength(): number | undefined {
-    const column = this.dataSource
-      .getMetadata(RagMessage)
-      .findColumnWithPropertyName('answer');
-    const length = column?.length;
-    if (!length) {
-      return undefined;
-    }
-    const parsedLength = Number(length);
-    return Number.isFinite(parsedLength) ? parsedLength : undefined;
-  }
-
   private extractTextFromKG(kg: any): string {
     if (!kg) return '';
 
@@ -55,12 +42,6 @@ export class RagService {
     }
 
     if (typeof parsedKg === 'object' && parsedKg !== null) {
-      const edges = Array.isArray(parsedKg.edges) ? parsedKg.edges : [];
-      const triples = edges
-        .map((edge: any) => edge?.data)
-        .filter((data: any) => data?.source && data?.label && data?.target)
-        .map((data: any) => `${data.source} -> ${data.label} -> ${data.target}`);
-
       const nodes = Array.isArray(parsedKg.nodes) ? parsedKg.nodes : [];
       const groupLabels = new Map<string, string>();
       const groupMembers = new Map<string, Set<string>>();
@@ -68,13 +49,13 @@ export class RagService {
       nodes.forEach((node: any) => {
         const data = node?.data ?? {};
         const nodeId = data?.id;
-        const nodeLabel = data?.label ?? data?.name ?? data?.id;
+        const nodeLabel = data?.label ?? data?.id ?? data?.name;
         if (nodeId && nodeLabel) {
           groupLabels.set(nodeId, nodeLabel);
         }
         if (data?.parent) {
           const parentId = data.parent;
-          const memberLabel = data?.id ?? data?.label ?? data?.name;
+          const memberLabel = data?.label ?? data?.id ?? data?.name;
           if (memberLabel) {
             if (!groupMembers.has(parentId)) {
               groupMembers.set(parentId, new Set());
@@ -83,6 +64,16 @@ export class RagService {
           }
         }
       });
+
+      const edges = Array.isArray(parsedKg.edges) ? parsedKg.edges : [];
+      const resolveLabel = (value: any) => {
+        const key = typeof value === 'string' ? value : String(value);
+        return groupLabels.get(key) ?? key;
+      };
+      const triples = edges
+        .map((edge: any) => edge?.data)
+        .filter((data: any) => data?.source && data?.label && data?.target)
+        .map((data: any) => `${resolveLabel(data.source)} -> ${data.label} -> ${resolveLabel(data.target)}`);
 
       const groupLines = Array.from(groupMembers.entries()).map(([groupId, members]) => {
         const groupName = groupLabels.get(groupId) ?? groupId;
@@ -202,23 +193,15 @@ export class RagService {
       topP: dto.topP,
     });
 
-    const maxAnswerLength = this.getAnswerMaxLength();
-    let trimmedAnswer = answer;
-    if (maxAnswerLength && answer.length > maxAnswerLength) {
-      this.logger.warn(
-        `[RAG] answer trimmed: length=${answer.length} max=${maxAnswerLength} ` +
-        `projectId=${projectId} ragId=${ragId} model=${resolvedModel ?? 'default'}`,
-      );
-      trimmedAnswer = answer.slice(0, maxAnswerLength);
-    }
+
 
     dto.question = question;
-    dto.answer = trimmedAnswer;
+    dto.answer = answer;
     dto.model = resolvedModel;
 
 
     await this.ragMessageService.create(dto, user, project, rag);
 
-    return trimmedAnswer;
+    return answer;
   }
 }
