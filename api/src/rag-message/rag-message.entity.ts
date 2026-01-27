@@ -18,6 +18,12 @@ export class RagMessage extends BaseDefaultEntity {
   @Column({ type: 'text' })
   answer: string;
 
+  @Column({ type: 'text', nullable: true, select: false })
+  context: string;
+
+  @Column({ length: 50, nullable: true })
+  contextkey: string;
+
   @Column({ type: 'decimal', precision: 6, scale: 2, default: 0.7, nullable: true })
   temperature?: number;
 

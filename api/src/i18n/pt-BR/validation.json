@@ -122,6 +122,9 @@
       "number": "Amostragem por núcleo deve ser um numero.",
       "min": "Amostragem por núcleo deve ser maior ou igual a 0.1.",
       "max": "Amostragem por núcleo deve ser menor ou igual a 1.0."
+    },
+    "systemPrompt": {
+      "invalid": "System prompt deve ser um dos presets permitidos."
     }
   }
 }

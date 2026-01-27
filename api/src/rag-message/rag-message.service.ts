@@ -40,6 +40,8 @@ export class RagMessageService {
     message.maxtokens = dto.maxTokens;
     message.topp = dto.topP;
     message.answer = dto.answer;
+    message.contextkey = dto.contextkey;
+    message.context = dto.context;
 
 
     return this.repo.save(message);

@@ -61,7 +61,7 @@ export class RagController {
   async query(@GetUser() user: User, @Body() dto: RagQueryDto) {
 
     const answer = await this.ragService.query(dto, user);
-    return { answer };
+    return { answer, contextkey: dto.contextkey };
   }
 
   @Get('message/:id')

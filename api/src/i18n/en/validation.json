@@ -122,6 +122,9 @@
       "number": "Nucleus sampling must be a number.",
       "min": "Nucleus sampling must be greater than or equal to 0.1.",
       "max": "Nucleus sampling must be less than or equal to 1.0."
+    },
+    "systemPrompt": {
+      "invalid": "System prompt must be one of the allowed presets."
     }
   }
 }

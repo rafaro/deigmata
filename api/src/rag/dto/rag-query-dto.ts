@@ -1,5 +1,5 @@
 import { Transform, Type } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { IsIn, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { i18nValidationMessage } from 'nestjs-i18n';
 
 export class RagQueryDto {
@@ -44,4 +44,17 @@ export class RagQueryDto {
 
   @IsOptional()
   model?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['system', 'systemCreative', 'systemStructured', 'systemTraceable', 'systemMinimal'], {
+    message: i18nValidationMessage('validation.ragMessage.systemPrompt.invalid'),
+  })
+  systemPrompt?: string;
+
+  @IsOptional()
+  context?: string;
+
+  @IsOptional()
+  contextkey?: string;
 }

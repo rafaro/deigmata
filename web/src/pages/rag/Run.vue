@@ -50,6 +50,18 @@
               <div class="q-pa-md">
                 <div class="column q-gutter-md q-mb-sm">
                   <div class="col-12">
+                    <div class="text-caption text-grey-7">{{ t('rag.systemPrompt') }}</div>
+                    <q-select
+                      v-model="systemPromptKey"
+                      :options="systemPromptOptions"
+                      emit-value
+                      map-options
+                      dense
+                      outlined
+                      :hint="t('rag.systemPromptHint')"
+                    />
+                  </div>
+                  <div class="col-12">
                     <div class="text-caption text-grey-7">{{ t('rag.creativity') }}</div>
                     <q-slider
                       v-model="temperature"
@@ -201,8 +213,8 @@
   const prompt = ref('')
   const isThinking = ref(false)
 
-  const temperature = ref(0.2)
-  const nucleusSampling = ref(0.2)
+  const temperature = ref(0.1)
+  const nucleusSampling = ref(0.1)
   const nucleusSamplingLabel = computed(() => {
     if (nucleusSampling.value < 0.3) return t('rag.temperaturePrecise')
     if (nucleusSampling.value < 0.7) return t('rag.temperatureBalanced')
@@ -216,6 +228,14 @@
     return t('rag.temperatureExperimental')
   })
   const tuningExpanded = ref(false)
+  const systemPromptKey = ref('system')
+  const systemPromptOptions = computed(() => [
+    { label: t('rag.systemPromptBalanced'), value: 'system' },
+    { label: t('rag.systemPromptCreative'), value: 'systemCreative' },
+    { label: t('rag.systemPromptStructured'), value: 'systemStructured' },
+    { label: t('rag.systemPromptTraceable'), value: 'systemTraceable' },
+    { label: t('rag.systemPromptMinimal'), value: 'systemMinimal' },
+  ])
   const markdown = new MarkdownIt({
     html: false,
     linkify: true,
@@ -237,25 +257,39 @@
     if (Number.isFinite(numeric)) return numeric.toFixed(2)
     return String(value)
   }
+  const formatContextKey = (value) => {
+    if (value === null || value === undefined) return null
+    const text = systemPromptOptions.value.find((opt) => opt.value === value)?.label
+    return text.length ? text : null
+  }
   const buildStampWithSampling = (message) => {
     const parts = []
     const temperatureValue = formatSamplingValue(message.temperature)
-    const topPValue = formatSamplingValue(message.topp ?? message.topP)
+    const topPValue = formatSamplingValue(message.topp)
+    const contextKeyValue = formatContextKey(message.contextkey)
 
     if (temperatureValue) parts.push(`temperature: ${temperatureValue}`)
     if (topPValue) parts.push(`${t('rag.nucleusSampling')}: ${topPValue}`)
+    if (contextKeyValue) parts.push(`${t('rag.systemPrompt')}: ${contextKeyValue}`)
 
     const baseStamp = createStamp(message.createdat)
     if (!parts.length) return baseStamp
     return `${baseStamp} | ${parts.join(' | ')}`
   }
-  const buildStampWithSamplingValues = (temperatureValue, topPValue, stampValue = new Date()) => {
+  const buildStampWithSamplingValues = (
+    temperatureValue,
+    topPValue,
+    stampValue = new Date(),
+    contextKeyValue
+  ) => {
     const parts = []
     const formattedTemperature = formatSamplingValue(temperatureValue)
     const formattedTopP = formatSamplingValue(topPValue)
+    const formattedContextKey = formatContextKey(contextKeyValue)
 
     if (formattedTemperature) parts.push(`temperature: ${formattedTemperature}`)
     if (formattedTopP) parts.push(`${t('rag.nucleusSampling')}: ${formattedTopP}`)
+    if (formattedContextKey) parts.push(`${t('rag.systemPrompt')}: ${formattedContextKey}`)
 
     const baseStamp = createStamp(stampValue)
     if (!parts.length) return baseStamp
@@ -339,15 +373,23 @@
     prompt.value = ''
     isThinking.value = true
     try {
-      const response = await api.post('rag/message/query', {
+      const payload = {
         ragId: ragId.value,
         question: trimmedPrompt,
         temperature: temperature.value,
         topP: nucleusSampling.value,
         projectId: prjStore.getProject.id,
-      })
+        systemPrompt: systemPromptKey.value,
+      }
+      const response = await api.post('rag/message/query', payload)
       updatePendingAnswer({
         text: response.data?.answer ?? '',
+        stamp: buildStampWithSamplingValues(
+          temperature.value,
+          nucleusSampling.value,
+          new Date(),
+          response.data?.contextkey
+        ),
         loading: false,
       })
     } catch (e) {

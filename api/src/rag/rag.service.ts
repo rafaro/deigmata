@@ -175,7 +175,17 @@ export class RagService {
     const context = [
       this.extractTextFromKG(project.kg),
     ].filter(Boolean).join('\n\n');
-    const systemPrompt = this.i18n.t('msg.rag.prompt.system', { lang });
+    const allowedSystemPrompts = new Set([
+      'system',
+      'systemCreative',
+      'systemStructured',
+      'systemTraceable',
+      'systemMinimal',
+    ]);
+    const systemPromptKey = allowedSystemPrompts.has(dto.systemPrompt ?? '')
+      ? (dto.systemPrompt as string)
+      : 'system';
+    const systemPrompt = this.i18n.t(`msg.rag.prompt.${systemPromptKey}`, { lang });
     const userPrompt = this.i18n.t('msg.rag.prompt.user', {
       lang,
       args: { context, question },
@@ -193,11 +203,11 @@ export class RagService {
       topP: dto.topP,
     });
 
-
-
     dto.question = question;
     dto.answer = answer;
     dto.model = resolvedModel;
+    dto.contextkey = systemPromptKey;
+    dto.context = systemPrompt;
 
 
     await this.ragMessageService.create(dto, user, project, rag);
