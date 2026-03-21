@@ -9,6 +9,14 @@
     "kg": {
       "required": "KG: campo obrigatório.",
       "json": "kg deve ser um JSON válido."
+    },
+    "csvContent": {
+      "required": "CSV é obrigatório."
+    },
+    "csvMapping": {
+      "required": "Mapeamento CSV para KG é obrigatório.",
+      "json": "csvMapping deve ser um JSON válido.",
+      "object": "csvMapping deve ser um objeto."
     }
   },
   "auth": {

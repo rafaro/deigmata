@@ -60,6 +60,18 @@
               <q-btn
                 class="q-mx-sm"
                 size="md"
+                color="orange"
+                round
+                dense
+                icon="account_tree"
+                :to="{
+                  name: 'project/mapping',
+                  params: { id: props.row.id },
+                }"
+              />
+              <q-btn
+                class="q-mx-sm"
+                size="md"
                 color="purple"
                 round
                 dense

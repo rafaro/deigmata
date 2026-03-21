@@ -9,6 +9,8 @@ import { Project } from './project.entity';
 import { ProjectPatchKgDto } from './dto/project-patch-kg-dto';
 import { GetUser } from 'src/user/get-user.decorator';
 import { User } from 'src/user/user.entity';
+import { ProjectPatchCsvMappingDto } from './dto/project-patch-csv-mapping-dto';
+import { ProjectTransformCsvDto } from './dto/project-transform-csv-dto';
 
 @Controller('project')
 export class ProjectController {
@@ -64,6 +66,30 @@ export class ProjectController {
     @Body() dto: ProjectPatchKgDto,
   ): Promise<Project> {
     return this.srv.updateKg(id, dto, user);
+  }
+
+  @Patch('csv-mapping/:id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Role(AuthRoles.USER)
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  updateCsvMapping(
+    @GetUser() user: User,
+    @Param('id', ParseIntPipe) id: number,
+    @Body(ValidationPipe) dto: ProjectPatchCsvMappingDto,
+  ): Promise<Project> {
+    return this.srv.updateCsvMapping(id, dto, user);
+  }
+
+  @Post(':id/transform-csv')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Role(AuthRoles.USER)
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  transformCsv(
+    @GetUser() user: User,
+    @Param('id', ParseIntPipe) id: number,
+    @Body(ValidationPipe) dto: ProjectTransformCsvDto,
+  ): Promise<object> {
+    return this.srv.transformCsv(id, dto, user);
   }
 
   @Delete(':id')

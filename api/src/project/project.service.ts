@@ -6,13 +6,17 @@ import { ProjectCreateDto } from './dto/project-create-dto';
 import { ProjectPatchKgDto } from './dto/project-patch-kg-dto';
 import { I18nService } from 'nestjs-i18n';
 import { User } from 'src/user/user.entity';
+import { ProjectPatchCsvMappingDto } from './dto/project-patch-csv-mapping-dto';
+import { ProjectTransformCsvDto } from './dto/project-transform-csv-dto';
+import { CsvKgTransformService } from './csv-kg-transform.service';
 
 @Injectable()
 export class ProjectService {
   constructor(
     @InjectRepository(ProjectRepository)
     private repo: ProjectRepository,
-    private readonly i18n: I18nService
+    private readonly i18n: I18nService,
+    private readonly csvKgTransformService: CsvKgTransformService
   ) { }
 
   async getById(id: number, user: User): Promise<Project> {
@@ -32,11 +36,12 @@ export class ProjectService {
   }
 
   async create(dto: ProjectCreateDto, user: User): Promise<void> {
-    const { name } = dto;
+    const { name, kg, csvMapping } = dto;
     const obj = new Project();
     obj.name = name;
     obj.user = user;
-    obj.kg = dto.kg;
+    obj.kg = kg;
+    obj.csvMapping = csvMapping;
 
 
     try {
@@ -57,11 +62,23 @@ export class ProjectService {
 
   async update(id: number, dto: ProjectCreateDto, user: User): Promise<Project> {
     const obj = await this.getById(id, user);
-    const { name, layout, kg } = dto;
+    const { name, layout, kg, csvMapping } = dto;
 
-    obj.name = name;
-    obj.layout = layout;
-    obj.kg = kg;
+    if (typeof name !== 'undefined') {
+      obj.name = name;
+    }
+
+    if (typeof layout !== 'undefined') {
+      obj.layout = layout;
+    }
+
+    if (typeof kg !== 'undefined') {
+      obj.kg = kg;
+    }
+
+    if (typeof csvMapping !== 'undefined') {
+      obj.csvMapping = csvMapping;
+    }
 
     return await this.repo.save(obj);
   }
@@ -74,6 +91,46 @@ export class ProjectService {
 
     return await this.repo.save(obj);
 
+  }
+
+  async updateCsvMapping(
+    id: number,
+    dto: ProjectPatchCsvMappingDto,
+    user: User,
+  ): Promise<Project> {
+    const obj = await this.getById(id, user);
+    obj.csvMapping = dto.csvMapping;
+
+    return await this.repo.save(obj);
+  }
+
+  async transformCsv(
+    id: number,
+    dto: ProjectTransformCsvDto,
+    user: User,
+  ): Promise<object> {
+    const obj = await this.getById(id, user);
+    const mapping = dto.mapping ?? obj.csvMapping;
+
+    if (!mapping) {
+      throw new NotFoundException(this.i18n.t('msg.project.csvMappingMissing'));
+    }
+
+    const kg = this.csvKgTransformService.transform(
+      dto.csvContent,
+      mapping,
+      dto.delimiter,
+    );
+
+    obj.kg = kg;
+
+    if (dto.mapping) {
+      obj.csvMapping = dto.mapping;
+    }
+
+    await this.repo.save(obj);
+
+    return kg;
   }
 
   async delete(id: number): Promise<void> {

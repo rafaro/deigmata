@@ -62,6 +62,12 @@ const routes = [
         props: true,
         component: () => import('pages/project/Import.vue'),
       },
+      {
+        path: 'mapping/:id',
+        name: 'project/mapping',
+        props: true,
+        component: () => import('pages/project/CsvMapping.vue'),
+      },
     ],
   },
   {

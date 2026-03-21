@@ -45,6 +45,8 @@
   },
   "ragMessage": {
     "projectMismatch": "RAG nao pertence ao projeto {projectId}."
+  },
+  "project": {
+    "csvMappingMissing": "Mapeamento CSV para KG não encontrado no projeto."
   }
-  
 }

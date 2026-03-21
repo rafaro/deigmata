@@ -9,6 +9,14 @@
     "kg": {
       "required": "kg is required.",
       "json": "kg must be valid JSON."
+    },
+    "csvContent": {
+      "required": "CSV content is required."
+    },
+    "csvMapping": {
+      "required": "csvMapping is required.",
+      "json": "csvMapping must be valid JSON.",
+      "object": "csvMapping must be an object."
     }
   },
   "auth": {
