@@ -44,9 +44,9 @@ describe('CsvKgTransformService', () => {
     expect(result.edges[0]).toMatchObject({
       data: {
         label: 'livesIn',
-        predicate: 'http://example.com/resource/livesIn',
-        source: 'http://example.com/resource/Ana',
-        target: 'http://example.com/resource/Sao Paulo',
+        predicate: 'http://example.com/resource/livesin',
+        source: 'http://example.com/resource/ana',
+        target: 'http://example.com/resource/sao-paulo',
       },
     });
   });
@@ -83,6 +83,103 @@ describe('CsvKgTransformService', () => {
         label: '34',
         type: 'xsd:integer',
         value: '34',
+      },
+    });
+  });
+
+  it('slugifies node ids while keeping labels readable', () => {
+    const result = service.transform(
+      'person,city\nAna Maria,São Paulo',
+      {
+        baseIri: 'http://example.com/resource',
+        roots: [
+          {
+            kind: 'resource',
+            subjectSource: { mode: 'column', value: 'person' },
+            triples: [
+              {
+                predicateSource: { mode: 'fixed', value: 'livesIn' },
+                object: {
+                  kind: 'resource',
+                  subjectSource: { mode: 'column', value: 'city' },
+                },
+              },
+              {
+                predicateSource: { mode: 'fixed', value: 'full name' },
+                object: {
+                  kind: 'literal',
+                  valueSource: { mode: 'column', value: 'person' },
+                },
+              },
+            ],
+          },
+        ],
+      },
+      ',',
+    );
+
+    expect(result.nodes).toHaveLength(3);
+    expect(
+      result.nodes.every((node) => !/\s/.test(String((node as any).data?.id))),
+    ).toBe(true);
+    expect(result.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'http://example.com/resource/sao-paulo',
+            label: 'São Paulo',
+          }),
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'http://example.com/resource/ana-maria',
+          }),
+        }),
+      ]),
+    );
+  });
+
+  it('removes dots from slugified ids', () => {
+    const result = service.transform(
+      'person,city\nDr. João,St. Louis',
+      {
+        baseIri: 'http://example.com/resource',
+        roots: [
+          {
+            kind: 'resource',
+            subjectSource: { mode: 'column', value: 'person' },
+            triples: [
+              {
+                predicateSource: { mode: 'fixed', value: 'lives.in' },
+                object: {
+                  kind: 'resource',
+                  subjectSource: { mode: 'column', value: 'city' },
+                },
+              },
+            ],
+          },
+        ],
+      },
+      ',',
+    );
+
+    expect(result.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'http://example.com/resource/dr-joao',
+          }),
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'http://example.com/resource/st-louis',
+          }),
+        }),
+      ]),
+    );
+    expect(result.edges[0]).toMatchObject({
+      data: {
+        predicate: 'http://example.com/resource/lives-in',
       },
     });
   });

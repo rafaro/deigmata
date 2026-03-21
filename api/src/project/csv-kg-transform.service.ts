@@ -59,7 +59,7 @@ type TransformContext = {
 
 @Injectable()
 export class CsvKgTransformService {
-  constructor(private readonly i18n: I18nService) {}
+  constructor(private readonly i18n: I18nService) { }
 
   transform(csvContent: string, mapping: CsvKgMapping, delimiter?: string) {
     if (!mapping || !Array.isArray(mapping.roots) || mapping.roots.length === 0) {
@@ -203,7 +203,7 @@ export class CsvKgTransformService {
         context,
         node.labelTemplate,
       ).trim() || value;
-    const nodeId = `lit::${sourceId}::${predicate}::${value}`;
+    const nodeId = this.buildLiteralNodeId(sourceId, predicate, value);
 
     this.upsertNode(context.nodes, nodeId, {
       id: nodeId,
@@ -236,7 +236,7 @@ export class CsvKgTransformService {
       rawLabel ||
       (resolvedId.startsWith('_:')
         ? node.title?.trim() || `Blank node ${context.rowNumber}`
-        : this.toDisplayLabel(resolvedId, context.mapping)) ||
+        : this.resolveResourceLabel(node, resolvedId, context)) ||
       node.title?.trim() ||
       node.type?.trim() ||
       resolvedId;
@@ -314,6 +314,15 @@ export class CsvKgTransformService {
     return `_:row${context.rowNumber}-${path.join('-')}`;
   }
 
+  private buildLiteralNodeId(sourceId: string, predicate: string, value: string) {
+    return [
+      'lit',
+      sourceId,
+      this.slugifyIdentifierValue(predicate),
+      this.slugifyIdentifierValue(value),
+    ].join('::');
+  }
+
   private upsertNode(
     nodes: Map<string, Record<string, unknown>>,
     nodeId: string,
@@ -364,18 +373,18 @@ export class CsvKgTransformService {
     }
 
     if (trimmed.startsWith('_:')) {
-      return trimmed;
+      return this.slugifyIdentifierValue(trimmed);
     }
 
     if (/^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(trimmed) || trimmed.startsWith('urn:')) {
-      return trimmed;
+      return this.slugifyIdentifierValue(trimmed);
     }
 
     const prefixed = trimmed.match(/^([A-Za-z][\w-]*):(.*)$/);
     if (prefixed) {
       const namespace = mapping.namespaces?.find((item) => item.prefix === prefixed[1]);
       if (namespace?.iri) {
-        return `${namespace.iri}${prefixed[2]}`;
+        return `${namespace.iri}${this.slugifyIdentifierValue(prefixed[2])}`;
       }
     }
 
@@ -383,10 +392,28 @@ export class CsvKgTransformService {
       const base = mapping.baseIri.endsWith('/') || mapping.baseIri.endsWith('#')
         ? mapping.baseIri
         : `${mapping.baseIri}/`;
-      return `${base}${trimmed}`;
+      return `${base}${this.slugifyIdentifierValue(trimmed)}`;
     }
 
-    return trimmed;
+    return this.slugifyIdentifierValue(trimmed);
+  }
+
+  private resolveResourceLabel(
+    node: CsvKgResourceNode,
+    resolvedId: string,
+    context: TransformContext,
+  ) {
+    const rawIdentifier = this.resolveValueSource(
+      node.subjectSource,
+      context,
+      node.iriTemplate,
+    ).trim();
+
+    if (rawIdentifier && !/[/:#]/.test(rawIdentifier)) {
+      return rawIdentifier;
+    }
+
+    return this.toDisplayLabel(resolvedId, context.mapping);
   }
 
   private toDisplayLabel(value: string, mapping: CsvKgMapping) {
@@ -394,20 +421,64 @@ export class CsvKgTransformService {
     const namespace = mapping.namespaces?.find((item) => item.iri && trimmed.startsWith(item.iri));
 
     if (namespace?.prefix && namespace.iri) {
-      return `${namespace.prefix}:${trimmed.slice(namespace.iri.length)}`;
+      return `${namespace.prefix}:${this.decodeIdentifierLabel(trimmed.slice(namespace.iri.length))}`;
     }
 
     if (trimmed.includes('#')) {
       const hashSegments = trimmed.split('#');
-      return hashSegments[hashSegments.length - 1] || trimmed;
+      return this.decodeIdentifierLabel(hashSegments[hashSegments.length - 1] || trimmed);
     }
 
     if (trimmed.includes('/')) {
       const slashSegments = trimmed.split('/');
-      return slashSegments[slashSegments.length - 1] || trimmed;
+      return this.decodeIdentifierLabel(slashSegments[slashSegments.length - 1] || trimmed);
     }
 
-    return trimmed;
+    return this.decodeIdentifierLabel(trimmed);
+  }
+
+  private slugifyIdentifierValue(value: string) {
+    return value
+      .split(/([/:#])/)
+      .map((segment) => {
+        if (segment === '/' || segment === ':' || segment === '#') {
+          return segment;
+        }
+
+        return this.slugifyIdentifierSegment(segment);
+      })
+      .join('');
+  }
+
+  private slugifyIdentifierSegment(value: string) {
+    const trimmed = value.trim();
+
+    if (!trimmed) {
+      return '';
+    }
+
+    const slug = trimmed
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/['’]/g, '')
+      .replace(/[^a-z0-9_-]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    if (slug) {
+      return slug;
+    }
+
+    return trimmed.toLowerCase().replace(/\s+/g, '-');
+  }
+
+  private decodeIdentifierLabel(value: string) {
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value;
+    }
   }
 
   private parseCsv(csvContent: string, delimiter?: string) {
