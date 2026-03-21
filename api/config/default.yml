@@ -2,6 +2,7 @@ server:
   port: 3000
   cors: true
   timezone: 'America/Sao_Paulo'
+  bodyLimit: '5mb'
 
 origin:
   - 'http://localhost:80'

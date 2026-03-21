@@ -38,15 +38,19 @@
       </div>
     </div>
 
-    <q-input
-      outlined
-      autogrow
-      v-model="csvContent"
-      type="textarea"
-      :rows="6"
-      :label="t('csvKg.csvContent')"
-      :hint="t('csvKg.csvContentHint')"
-    />
+    <q-card flat bordered>
+      <q-expansion-item
+        default-opened
+        expand-separator
+        icon="description"
+        :label="t('csvKg.csvContent')"
+        :caption="t('csvKg.csvContentHint')"
+      >
+        <q-card-section>
+          <q-input outlined autogrow v-model="csvContent" type="textarea" :rows="6" />
+        </q-card-section>
+      </q-expansion-item>
+    </q-card>
 
     <div class="q-mt-sm" v-if="headers.length > 0">
       <div class="text-caption text-grey-7 q-mb-xs">{{ t('csvKg.detectedColumns') }}</div>

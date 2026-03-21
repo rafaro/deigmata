@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import * as config from 'config';
 import {
@@ -9,9 +10,15 @@ import {
 import { I18nService } from 'nestjs-i18n';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const i18n = app.get<I18nService<Record<string, unknown>>>(I18nService);
   const corsNotAllowed = i18n.t('msg.cors.notAllowed');
+  const bodyLimit = config.has('server.bodyLimit')
+    ? config.get<string>('server.bodyLimit')
+    : '5mb';
+
+  app.useBodyParser('json', { limit: bodyLimit });
+  app.useBodyParser('urlencoded', { limit: bodyLimit, extended: true });
 
   app.useGlobalPipes(
     new I18nValidationPipe({
@@ -46,7 +53,9 @@ async function bootstrap() {
   process.env.TZ = timezone;
 
   const logger = new Logger('Bootstrap');
-  logger.log(`[SERVER] port=${port} | tz=${timezone} | started=${new Date().toISOString()}`);
+  logger.log(
+    `[SERVER] port=${port} | tz=${timezone} | bodyLimit=${bodyLimit} | started=${new Date().toISOString()}`,
+  );
   await app.listen(port);
 }
 
