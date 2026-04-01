@@ -13,6 +13,9 @@
     "csvContent": {
       "required": "CSV content is required."
     },
+    "turtleContent": {
+      "required": "Turtle content is required."
+    },
     "csvMapping": {
       "required": "csvMapping is required.",
       "json": "csvMapping must be valid JSON.",

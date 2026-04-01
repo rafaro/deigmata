@@ -13,6 +13,9 @@
     "csvContent": {
       "required": "CSV é obrigatório."
     },
+    "turtleContent": {
+      "required": "Turtle é obrigatório."
+    },
     "csvMapping": {
       "required": "Mapeamento CSV para KG é obrigatório.",
       "json": "csvMapping deve ser um JSON válido.",

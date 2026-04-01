@@ -47,6 +47,9 @@
     "projectMismatch": "RAG nao pertence ao projeto {projectId}."
   },
   "project": {
-    "csvMappingMissing": "Mapeamento CSV para KG não encontrado no projeto."
+    "csvMappingMissing": "Mapeamento CSV para KG não encontrado no projeto.",
+    "turtleParseError": "Não foi possível interpretar o arquivo Turtle próximo à posição {position}.",
+    "turtleUnknownPrefix": "Prefixo Turtle não declarado: {prefix}.",
+    "turtleCollectionsUnsupported": "Coleções Turtle com parênteses ainda não são suportadas."
   }
 }

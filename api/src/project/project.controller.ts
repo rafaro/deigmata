@@ -11,6 +11,7 @@ import { GetUser } from 'src/user/get-user.decorator';
 import { User } from 'src/user/user.entity';
 import { ProjectPatchCsvMappingDto } from './dto/project-patch-csv-mapping-dto';
 import { ProjectTransformCsvDto } from './dto/project-transform-csv-dto';
+import { ProjectTransformTurtleDto } from './dto/project-transform-turtle-dto';
 
 @Controller('project')
 export class ProjectController {
@@ -90,6 +91,18 @@ export class ProjectController {
     @Body(ValidationPipe) dto: ProjectTransformCsvDto,
   ): Promise<object> {
     return this.srv.transformCsv(id, dto, user);
+  }
+
+  @Post(':id/transform-turtle')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Role(AuthRoles.USER)
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  transformTurtle(
+    @GetUser() user: User,
+    @Param('id', ParseIntPipe) id: number,
+    @Body(ValidationPipe) dto: ProjectTransformTurtleDto,
+  ): Promise<object> {
+    return this.srv.transformTurtle(id, dto, user);
   }
 
   @Delete(':id')

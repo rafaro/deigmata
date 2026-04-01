@@ -9,6 +9,8 @@ import { User } from 'src/user/user.entity';
 import { ProjectPatchCsvMappingDto } from './dto/project-patch-csv-mapping-dto';
 import { ProjectTransformCsvDto } from './dto/project-transform-csv-dto';
 import { CsvKgTransformService } from './csv-kg-transform.service';
+import { ProjectTransformTurtleDto } from './dto/project-transform-turtle-dto';
+import { TurtleKgTransformService } from './turtle-kg-transform.service';
 
 @Injectable()
 export class ProjectService {
@@ -16,7 +18,8 @@ export class ProjectService {
     @InjectRepository(ProjectRepository)
     private repo: ProjectRepository,
     private readonly i18n: I18nService,
-    private readonly csvKgTransformService: CsvKgTransformService
+    private readonly csvKgTransformService: CsvKgTransformService,
+    private readonly turtleKgTransformService: TurtleKgTransformService,
   ) { }
 
   async getById(id: number, user: User): Promise<Project> {
@@ -128,6 +131,20 @@ export class ProjectService {
       obj.csvMapping = dto.mapping;
     }
 
+    await this.repo.save(obj);
+
+    return kg;
+  }
+
+  async transformTurtle(
+    id: number,
+    dto: ProjectTransformTurtleDto,
+    user: User,
+  ): Promise<object> {
+    const obj = await this.getById(id, user);
+    const kg = this.turtleKgTransformService.transform(dto.turtleContent);
+
+    obj.kg = kg;
     await this.repo.save(obj);
 
     return kg;

@@ -47,6 +47,9 @@
     "projectMismatch": "RAG does not belong to project {projectId}."
   },
   "project": {
-    "csvMappingMissing": "CSV to KG mapping was not found for this project."
+    "csvMappingMissing": "CSV to KG mapping was not found for this project.",
+    "turtleParseError": "Unable to parse the Turtle file near position {position}.",
+    "turtleUnknownPrefix": "Undeclared Turtle prefix: {prefix}.",
+    "turtleCollectionsUnsupported": "Turtle collections using parentheses are not supported yet."
   }
 }

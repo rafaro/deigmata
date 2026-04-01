@@ -68,6 +68,12 @@ const routes = [
         props: true,
         component: () => import('pages/project/CsvMapping.vue'),
       },
+      {
+        path: 'turtle/:id',
+        name: 'project/turtle',
+        props: true,
+        component: () => import('pages/project/TurtleImport.vue'),
+      },
     ],
   },
   {

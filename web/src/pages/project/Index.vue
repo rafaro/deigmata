@@ -31,11 +31,14 @@
                 round
                 dense
                 icon="edit"
+                :aria-label="t('projectList.editProject')"
                 :to="{
                   name: 'project/edit',
                   params: { id: props.row.id },
                 }"
-              />
+              >
+                <q-tooltip>{{ t('projectList.editProject') }}</q-tooltip>
+              </q-btn>
               <q-btn
                 class="q-mx-sm"
                 size="md"
@@ -43,11 +46,14 @@
                 round
                 dense
                 icon="delete"
+                :aria-label="t('projectList.deleteProject')"
                 :to="{
                   name: 'project/delete',
                   params: { id: props.row.id },
                 }"
-              />
+              >
+                <q-tooltip>{{ t('projectList.deleteProject') }}</q-tooltip>
+              </q-btn>
               <q-btn
                 class="q-mx-sm"
                 size="md"
@@ -55,8 +61,11 @@
                 round
                 dense
                 icon="check"
+                :aria-label="t('projectList.selectProject')"
                 @click="select(props.row.id, props.row.name, props.row.layout)"
-              />
+              >
+                <q-tooltip>{{ t('projectList.selectProject') }}</q-tooltip>
+              </q-btn>
               <q-btn
                 class="q-mx-sm"
                 size="md"
@@ -64,11 +73,29 @@
                 round
                 dense
                 icon="account_tree"
+                :aria-label="t('projectList.openCsvMapping')"
                 :to="{
                   name: 'project/mapping',
                   params: { id: props.row.id },
                 }"
-              />
+              >
+                <q-tooltip>{{ t('projectList.openCsvMapping') }}</q-tooltip>
+              </q-btn>
+              <q-btn
+                class="q-mx-sm"
+                size="md"
+                color="teal"
+                round
+                dense
+                icon="device_hub"
+                :aria-label="t('projectList.openTurtleImport')"
+                :to="{
+                  name: 'project/turtle',
+                  params: { id: props.row.id },
+                }"
+              >
+                <q-tooltip>{{ t('projectList.openTurtleImport') }}</q-tooltip>
+              </q-btn>
               <q-btn
                 class="q-mx-sm"
                 size="md"
@@ -76,8 +103,11 @@
                 round
                 dense
                 icon="visibility"
+                :aria-label="t('projectList.openKg')"
                 @click="goToKg(props.row)"
-              />
+              >
+                <q-tooltip>{{ t('projectList.openKg') }}</q-tooltip>
+              </q-btn>
             </q-td>
             <q-td v-for="col in props.cols" :key="col.name" :props="props">
               {{ col.value }}
