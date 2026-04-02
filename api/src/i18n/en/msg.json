@@ -1,55 +1,55 @@
 {
-  
-  "recordNotFound": "Record {id} not found",
   "alreadyRegistered": "This {desc} is already registered.",
-  "noRecordRemoved": "No record removed",
-  "noRecordsFoundAdmin": "No records found. (SPR)",
-  "invalidCredentials": "Invalid username or password.",
   "authNotConfirmed": "Your authentication has not been confirmed.",
-  "email": {
-    "alreadyRegistered": "This email is already registered.",
-    "alreadyConfirmed": "Your email is already confirmed.",
-    "passwordResetFailed": "It was not possible to send the password reset to this email.",
-    "notConfirmed": "Your email has not been confirmed.",
-    "invalidRecoveryLink": "This link is not valid. Request a new link or check your email inbox."
-  },
-  "password": {
-    "changeFailed": "Unable to change your password. Please try again later."
-  },
   "cors": {
     "notAllowed": "Not allowed by CORS."
   },
+  "email": {
+    "alreadyConfirmed": "Your email is already confirmed.",
+    "alreadyRegistered": "This email is already registered.",
+    "invalidRecoveryLink": "This link is not valid. Request a new link or check your email inbox.",
+    "notConfirmed": "Your email has not been confirmed.",
+    "passwordResetFailed": "It was not possible to send the password reset to this email."
+  },
+  "invalidCredentials": "Invalid username or password.",
   "llm": {
-    "openai": {
-      "apiKeyMissing": "OpenAI API key is not configured; LLM features are disabled until a key is provided."
-    },
     "anthropic": {
       "apiKeyMissing": "Anthropic API key is not configured; LLM features are disabled until a key is provided.",
       "embeddingsUnsupported": "Anthropic does not provide native embeddings. Use OpenAI or another provider for embeddings."
+    },
+    "openai": {
+      "apiKeyMissing": "OpenAI API key is not configured; LLM features are disabled until a key is provided."
     }
   },
+  "noRecordRemoved": "No record removed",
+  "noRecordsFoundAdmin": "No records found. (SPR)",
+  "password": {
+    "changeFailed": "Unable to change your password. Please try again later."
+  },
+  "project": {
+    "csvMappingMissing": "CSV to KG mapping was not found for this project.",
+    "turtleCollectionsUnsupported": "Turtle collections using parentheses are not supported yet.",
+    "turtleParseError": "Unable to parse the Turtle file near position {position}.",
+    "turtleUnknownPrefix": "Undeclared Turtle prefix: {prefix}."
+  },
   "rag": {
-    "prompt": {      
-      "systemStrict": "You are a helpful assistant that answers questions using the provided context only. If the answer is not in the context, say that you do not have that information.",
-      "systemv2": "Respond primarily based on the provided context, while allowing variation in the form of presentation, ordering, or grouping.",
-      "system": "You are an assistant that answers questions using the provided graph context. Use the relationships and connections between entities to construct coherent answers. You may synthesize information from multiple related nodes, make inferences based on graph connections, and present the information in a natural way. If the answer requires information not present in the graph, clearly indicate which parts you can answer and which you cannot.",
-      "systemCreative": "Base your responses on the provided graph context, exploring the relationships between entities. You may: connect information from different nodes, infer conclusions based on the mapped relationships, reorganize and present the data in varied ways, and enrich the response with explanations about the connections. Always make it clear when you are making inferences versus citing information directly from the graph.",
-      "systemStructured": "Analyze the provided knowledge graph to respond. Navigate the relationships between nodes to build complete answers. You may synthesize connected information, present multiple perspectives when different paths exist in the graph, and order information by relevance. Indicate the confidence level: 'directly from the graph' for explicit information or 'inferred from relationships' for conclusions based on connections.",
-      "systemTraceable": "Respond using the provided graph context. Explore relationships between entities to produce complete answers. You have the flexibility to vary presentation, connect related nodes, and prioritize the most relevant information. When using multiple nodes, naturally mention sources (e.g., 'according to document X' or 'as related in Y'). For missing information, suggest which graph relationships could be expanded.",
-      "systemMinimal": "Use the provided graph context as the foundation. Explore relationships, make connections, adapt the presentation, and be transparent about inferences versus direct facts.",
-      "user": "Context:\n{context}\n\nQuestion: {question}\n\nAnswer:"
-    },
     "error": {
       "kgMissing": "Project KG not found or empty for project {projectId}."
+    },
+    "prompts": {
+      "systemAnalytical": "Analyze the knowledge graph to build a complete answer. Navigate alternative relationship paths when they exist. For each key claim, indicate its source: use 'Direct:' for information stated explicitly in the graph, and 'Inferred (confidence: high/medium/low):' for conclusions derived from connections. If multiple valid interpretations exist, present them.",
+      "systemExploratory": "Explore the knowledge graph to produce a rich, connected response. You may synthesize nodes, surface non-obvious relationships, and offer explanations about why entities are connected. When referencing specific nodes, name them naturally (e.g., 'according to [entity]' or 'as linked via [relationship]'). Where the graph is incomplete, suggest which relationships could be expanded to answer the question more fully.",
+      "systemFaithful": "Answer using only information present in the provided context. You may vary how the answer is structured — reordering, grouping, or summarizing — but do not introduce information, connections, or conclusions beyond what is explicitly stated.",
+      "systemMinimal": "Use the context. Connect what's relevant. Say what's inferred vs direct.",
+      "systemNoContext": "Answer the user's question without using any retrieved or external context. Rely only on your general capabilities and on what the user asked in this turn. Do not mention missing context unless the user explicitly asks about sources or evidence.",
+      "systemStrict": "You are a precise assistant. Answer only using information explicitly present in the provided context. Do not infer, extrapolate, or combine information across nodes. If the answer is not directly stated in the context, respond: 'This information is not available in the provided context.'",
+      "systemSynthetic": "You are an assistant that navigates a knowledge graph to answer questions. You may connect related nodes, trace relationship paths, and synthesize information from multiple parts of the graph. When you draw a conclusion that is not explicitly stated, label it as 'Inferred:' to distinguish it from direct facts.",
+      "user": "Context:\n{context}\n\nQuestion: {question}\n\nAnswer:",
+      "userNoContext": "Question: {question}\n\nAnswer:"
     }
   },
   "ragMessage": {
     "projectMismatch": "RAG does not belong to project {projectId}."
   },
-  "project": {
-    "csvMappingMissing": "CSV to KG mapping was not found for this project.",
-    "turtleParseError": "Unable to parse the Turtle file near position {position}.",
-    "turtleUnknownPrefix": "Undeclared Turtle prefix: {prefix}.",
-    "turtleCollectionsUnsupported": "Turtle collections using parentheses are not supported yet."
-  }
+  "recordNotFound": "Record {id} not found"
 }

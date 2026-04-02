@@ -212,6 +212,13 @@
 
   const prompt = ref('')
   const isThinking = ref(false)
+  const legacySystemPromptKeyMap = {
+    system: 'systemAnalytical',
+    systemCreative: 'systemExploratory',
+    systemStructured: 'systemFaithful',
+    systemTraceable: 'systemAnalytical',
+    systemMinimal: 'systemMinimal',
+  }
 
   const temperature = ref(0.1)
   const nucleusSampling = ref(0.1)
@@ -228,13 +235,15 @@
     return t('rag.temperatureExperimental')
   })
   const tuningExpanded = ref(false)
-  const systemPromptKey = ref('system')
+  const systemPromptKey = ref('systemAnalytical')
   const systemPromptOptions = computed(() => [
-    { label: t('rag.systemPromptBalanced'), value: 'system' },
-    { label: t('rag.systemPromptCreative'), value: 'systemCreative' },
-    { label: t('rag.systemPromptStructured'), value: 'systemStructured' },
-    { label: t('rag.systemPromptTraceable'), value: 'systemTraceable' },
-    { label: t('rag.systemPromptMinimal'), value: 'systemMinimal' },
+    { label: t('rag.prompts.systemAnalytical'), value: 'systemAnalytical' },
+    { label: t('rag.prompts.systemExploratory'), value: 'systemExploratory' },
+    { label: t('rag.prompts.systemFaithful'), value: 'systemFaithful' },
+    { label: t('rag.prompts.systemMinimal'), value: 'systemMinimal' },
+    { label: t('rag.prompts.systemNoContext'), value: 'systemNoContext' },
+    { label: t('rag.prompts.systemStrict'), value: 'systemStrict' },
+    { label: t('rag.prompts.systemSynthetic'), value: 'systemSynthetic' },
   ])
   const markdown = new MarkdownIt({
     html: false,
@@ -259,8 +268,12 @@
   }
   const formatContextKey = (value) => {
     if (value === null || value === undefined) return null
-    const text = systemPromptOptions.value.find((opt) => opt.value === value)?.label
-    return text.length ? text : null
+    const normalizedValue = legacySystemPromptKeyMap[value] ?? value
+    const text = systemPromptOptions.value.find((opt) => opt.value === normalizedValue)?.label
+
+    if (typeof text === 'string' && text.length) return text
+    if (typeof value === 'string' && value.length) return value
+    return null
   }
   const buildStampWithSampling = (message) => {
     const parts = []

@@ -16,6 +16,22 @@ import { InjectDataSource } from '@nestjs/typeorm';
 @Injectable()
 export class RagService {
   private readonly logger = new Logger(RagService.name);
+  private readonly systemPromptAliases: Record<string, string> = {
+    system: 'systemAnalytical',
+    systemCreative: 'systemExploratory',
+    systemStructured: 'systemFaithful',
+    systemTraceable: 'systemAnalytical',
+    systemMinimal: 'systemMinimal',
+  };
+  private readonly allowedSystemPrompts = new Set([
+    'systemAnalytical',
+    'systemExploratory',
+    'systemFaithful',
+    'systemMinimal',
+    'systemNoContext',
+    'systemStrict',
+    'systemSynthetic',
+  ]);
 
   constructor(
     @Inject('LLM_PROVIDER') private llmProvider: ILLMProvider,
@@ -26,6 +42,16 @@ export class RagService {
     private readonly i18n: I18nService,
     @InjectDataSource() private dataSource: DataSource,
   ) { }
+
+  private resolveSystemPromptKey(systemPrompt?: string): string {
+    const normalizedKey = this.systemPromptAliases[systemPrompt ?? ''] ?? systemPrompt;
+
+    if (normalizedKey && this.allowedSystemPrompts.has(normalizedKey)) {
+      return normalizedKey;
+    }
+
+    return 'systemAnalytical';
+  }
 
   private extractTextFromKG(kg: any): string {
     if (!kg) return '';
@@ -151,6 +177,7 @@ export class RagService {
   async query(dto: RagQueryDto, user: User): Promise<string> {
     const { question, projectId, ragId } = dto;
     const lang = I18nContext.current()?.lang;
+    const systemPromptKey = this.resolveSystemPromptKey(dto.systemPrompt);
     const project = await this.projectService.getKgById(projectId, user);
 
 
@@ -160,7 +187,7 @@ export class RagService {
         args: { id: projectId },
       }));
     }
-    if (!project.kg) {
+    if (systemPromptKey !== 'systemNoContext' && !project.kg) {
       throw new NotFoundException(this.i18n.t('msg.project.kgNotFound', {
         lang,
         args: { id: projectId },
@@ -172,21 +199,16 @@ export class RagService {
       throw new NotFoundException(this.i18n.t('msg.recordNotFound', { args: { id: ragId } }));
     }
 
-    const context = [
-      this.extractTextFromKG(project.kg),
-    ].filter(Boolean).join('\n\n');
-    const allowedSystemPrompts = new Set([
-      'system',
-      'systemCreative',
-      'systemStructured',
-      'systemTraceable',
-      'systemMinimal',
-    ]);
-    const systemPromptKey = allowedSystemPrompts.has(dto.systemPrompt ?? '')
-      ? (dto.systemPrompt as string)
-      : 'system';
-    const systemPrompt = this.i18n.t(`msg.rag.prompt.${systemPromptKey}`, { lang });
-    const userPrompt = this.i18n.t('msg.rag.prompt.user', {
+    const context = systemPromptKey === 'systemNoContext'
+      ? ''
+      : [
+        this.extractTextFromKG(project.kg),
+      ].filter(Boolean).join('\n\n');
+    const systemPrompt = this.i18n.t(`msg.rag.prompts.${systemPromptKey}`, { lang });
+    const userPromptKey = systemPromptKey === 'systemNoContext'
+      ? 'msg.rag.prompts.userNoContext'
+      : 'msg.rag.prompts.user';
+    const userPrompt = this.i18n.t(userPromptKey, {
       lang,
       args: { context, question },
     });

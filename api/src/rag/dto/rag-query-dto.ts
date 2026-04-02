@@ -47,7 +47,19 @@ export class RagQueryDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(['system', 'systemCreative', 'systemStructured', 'systemTraceable', 'systemMinimal'], {
+  @IsIn([
+    'system',
+    'systemCreative',
+    'systemStructured',
+    'systemTraceable',
+    'systemMinimal',
+    'systemAnalytical',
+    'systemExploratory',
+    'systemFaithful',
+    'systemNoContext',
+    'systemStrict',
+    'systemSynthetic',
+  ], {
     message: i18nValidationMessage('validation.ragMessage.systemPrompt.invalid'),
   })
   systemPrompt?: string;
