@@ -6,7 +6,10 @@ import { ILLMProvider, ChatMessage, ChatOptions } from '../interfaces/llm.interf
 export class OpenAIProvider implements ILLMProvider {
   private openai: OpenAI;
 
-  constructor(apiKey: string) {
+  constructor(
+    apiKey: string,
+    private readonly maxTokens: number,
+  ) {
     this.openai = new OpenAI({
       apiKey,
     });
@@ -28,7 +31,7 @@ export class OpenAIProvider implements ILLMProvider {
       messages: messages as any,
       temperature: options?.temperature || 0.7,
       ...nucleusSampling,
-      max_tokens: options?.maxTokens || 500,
+      max_tokens: options?.maxTokens ?? this.maxTokens,
     });
     return response.choices[0].message.content;
   }

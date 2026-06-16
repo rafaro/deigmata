@@ -6,7 +6,10 @@ export class AnthropicProvider implements ILLMProvider {
   private apiKey: string;
   private baseUrl = 'https://api.anthropic.com/v1';
 
-  constructor(apiKey: string) {
+  constructor(
+    apiKey: string,
+    private readonly maxTokens: number,
+  ) {
     this.apiKey = apiKey;
   }
 
@@ -30,7 +33,7 @@ export class AnthropicProvider implements ILLMProvider {
       },
       body: JSON.stringify({
         model: options?.model || 'claude-3-5-sonnet',
-        max_tokens: options?.maxTokens || 500,
+        max_tokens: options?.maxTokens ?? this.maxTokens,
         system: systemMessages.map(m => m.content).join('\n'),
         ...nucleusSampling,
         messages: userMessages.map(m => ({ role: m.role, content: m.content })),

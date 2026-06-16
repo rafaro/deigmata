@@ -24,15 +24,16 @@ const llmProviderFactory = {
     const anthropicApiKey = config.has('llm.providers.anthropic.apiKey')
       ? config.get<string>('llm.providers.anthropic.apiKey')
       : '';
+    const maxTokens = config.get<number>('llm.maxTokens');
     logger.log(`[LLM] provider=${provider}`);
     switch (provider) {
       case 'anthropic':
-        return new AnthropicProvider(anthropicApiKey);
+        return new AnthropicProvider(anthropicApiKey, maxTokens);
       case 'mock':
         return new MockProvider();
       case 'openai':
       default:
-        return new OpenAIProvider(openaiApiKey);
+        return new OpenAIProvider(openaiApiKey, maxTokens);
     }
   },
   inject: [],

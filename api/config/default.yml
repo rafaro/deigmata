@@ -13,3 +13,6 @@ origin:
 jwt:
   expiresIn: 3600
   secret: 'teste'
+
+llm:
+  maxTokens: 1000

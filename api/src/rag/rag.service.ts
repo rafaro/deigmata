@@ -213,7 +213,7 @@ export class RagService {
       args: { context, question },
     });
 
-    dto.maxTokens = dto.maxTokens ?? 500;
+    dto.maxTokens = dto.maxTokens ?? config.get<number>('llm.maxTokens');
     const resolvedModel = dto.model ?? (config.has('llm.model') ? config.get<string>('llm.model') : undefined);
     const answer = await this.llmProvider.generateChatCompletion([
       { role: 'system', content: systemPrompt },
