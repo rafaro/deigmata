@@ -52,6 +52,27 @@
                   @update:model-value="(val) => filterGraph(val)"
                 />
               </div>
+              <div id="filterDistance" class="col-12 q-mb-md">
+                <div class="row items-center justify-between q-mb-xs">
+                  <span class="text-caption text-grey-7">{{ t('filterDistance') }}</span>
+                  <q-badge color="primary">
+                    {{ filterDistance }}
+                    {{
+                      filterDistance === 1 ? t('filterDistanceStep') : t('filterDistanceSteps')
+                    }}
+                  </q-badge>
+                </div>
+                <q-slider
+                  v-model="filterDistance"
+                  color="primary"
+                  :min="0"
+                  :max="6"
+                  :step="1"
+                  snap
+                  markers
+                  @update:model-value="() => filterGraph(filterText)"
+                />
+              </div>
               <div class="col-12 q-mb-sm">
                 <q-btn
                   color="primary"
@@ -204,6 +225,7 @@
   const listElements = ref([])
   const history = ref([])
   const creatingProject = ref(false)
+  const filterDistance = ref(1)
   const canUndo = computed(() => history.value.length > 0)
 
   const metrics = reactive({
@@ -314,23 +336,45 @@
   }
 
   function filterGraph(val) {
-    if (val) {
-      const needle = val.trim().toLowerCase()
-      cy.value.elements().remove()
-      cy.value.add(elements.value)
-      const matchedNodes = cy.value.nodes().filter((node) => {
-        const label = (node.data('label') || '').toString().toLowerCase()
-        return label.includes(needle)
-      })
-      const connectedEdges = matchedNodes.connectedEdges()
-      const connectedNodes = connectedEdges.connectedNodes()
-      const keep = matchedNodes.union(connectedEdges).union(connectedNodes)
-      const remove = cy.value.elements().difference(keep)
-      cy.value.remove(remove)
-    } else {
-      cy.value.elements().remove()
-      cy.value.add(elements.value)
+    if (!cy.value) return
+
+    cy.value.elements().remove()
+    cy.value.add(elements.value)
+
+    const needle = (val || '').toString().trim().toLowerCase()
+    if (!needle) return
+
+    const matchedNodes = cy.value.nodes().filter((node) => {
+      const label = (node.data('label') || '').toString().toLowerCase()
+      return label.includes(needle)
+    })
+
+    const maxDistance = Math.max(0, Number(filterDistance.value) || 0)
+    const keep = getElementsWithinDistance(matchedNodes, maxDistance)
+    const remove = cy.value.elements().difference(keep)
+    cy.value.remove(remove)
+  }
+
+  function getElementsWithinDistance(nodes, maxDistance) {
+    let keepNodes = nodes
+    let keepEdges = cy.value.collection()
+    let frontier = nodes
+
+    for (let distance = 0; distance < maxDistance; distance += 1) {
+      const nextEdges = frontier.connectedEdges().difference(keepEdges)
+      const nextNodes = nextEdges.connectedNodes().difference(keepNodes)
+
+      keepEdges = keepEdges.union(nextEdges)
+
+      if (nextNodes.empty()) {
+        break
+      }
+
+      keepNodes = keepNodes.union(nextNodes)
+      frontier = nextNodes
     }
+
+    return keepNodes.union(keepEdges)
   }
 
   async function createProjectFromFilteredGraph() {
