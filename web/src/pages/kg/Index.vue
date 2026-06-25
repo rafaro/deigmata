@@ -30,7 +30,7 @@
               dense
               options-dense
               emit-value
-              @update:model-value="(val) => changeLayout(val)"
+              @update:model-value="changeLayout"
             />
           </div>
 
@@ -47,7 +47,7 @@
                   dense
                   v-model="filterText"
                   :label="t('filter')"
-                  @update:model-value="(val) => filterGraph(val)"
+                  @update:model-value="filterGraph"
                 />
               </div>
               <div id="filterDistance" class="col-12 q-mb-md">
@@ -55,7 +55,7 @@
                   <span class="text-caption text-grey-7">{{ t('filterDistance') }}</span>
                   <q-badge color="primary">
                     {{ filterDistance }}
-                    {{ filterDistance === 1 ? t('filterDistanceStep') : t('filterDistanceSteps') }}
+                    {{ t(filterDistance === 1 ? 'filterDistanceStep' : 'filterDistanceSteps') }}
                   </q-badge>
                 </div>
                 <q-slider
@@ -80,13 +80,15 @@
                 </q-btn>
               </div>
             </q-expansion-item>
+
             <q-expansion-item id="history" expand-separator icon="history" :label="t('history')">
               <div class="col-10 q-py-md">
-                <q-btn @click="undo" icon="undo" class="col-4 q-mx-md" :disabled="!canUndo">
+                <q-btn @click="undo" icon="undo" class="col-4 q-mx-md" :disable="!canUndo">
                   {{ t('undo') }}
                 </q-btn>
               </div>
             </q-expansion-item>
+
             <q-expansion-item
               id="expand"
               expand-separator
@@ -94,9 +96,10 @@
               :label="`${t('expand')}/${t('collapse')}`"
             >
               <div class="col-10 q-py-md">
-                <!-- <p class="text-h6 col-10">{{ t('node') }}</p> -->
-                <q-btn @click="expand" icon="add" class="col-4 q-mx-md">{{ t('expand') }}</q-btn>
-                <q-btn @click="collapse" icon="remove" class="col-4 q-mx-md">
+                <q-btn @click="() => kgview.expand(cy)" icon="add" class="col-4 q-mx-md">
+                  {{ t('expand') }}
+                </q-btn>
+                <q-btn @click="() => kgview.collapse(cy)" icon="remove" class="col-4 q-mx-md">
                   {{ t('collapse') }}
                 </q-btn>
               </div>
@@ -130,9 +133,9 @@
                 <li>{{ t('graph.maxDegree') }}: {{ metrics.maxDegree }}</li>
                 <li>{{ t('graph.minDegree') }}: {{ metrics.minDegree }}</li>
                 <li>{{ t('graph.density') }}: {{ metrics.density.toFixed(4) }}</li>
-                <!-- <li>Componentes conectados: {{ metrics.components }}</li> -->
               </ul>
             </q-expansion-item>
+
             <q-expansion-item
               id="list"
               expand-separator
@@ -148,13 +151,8 @@
                 </q-item>
               </q-list>
             </q-expansion-item>
-            <q-expansion-item
-              id="tour"
-              expand-separator
-              icon="help"
-              @show="getList"
-              :label="t('tour')"
-            >
+
+            <q-expansion-item id="tour" expand-separator icon="help" :label="t('tour')">
               <div class="col-10 q-py-md">
                 <q-btn class="col-4 q-mx-md" @click="startTour">{{ t('start') }}</q-btn>
               </div>
@@ -164,10 +162,10 @@
       </div>
     </q-drawer>
 
-    <!-- Página Principal -->
+    <!-- Main page -->
     <q-page-container>
       <q-page class="q-pa-md">
-        <!-- Painel central (grafo) -->
+        <!-- Central panel (graph) -->
         <div class="kg-graph-panel q-pa-sm bg-grey-2 rounded-borders shadow-2 relative-position">
           <div ref="cyContainer" id="cytoscape-container" class="fit" />
 
@@ -184,6 +182,7 @@
               >
                 <q-tooltip>{{ t('zoomOut') }}</q-tooltip>
               </q-btn>
+
               <q-slider
                 v-model="zoomLevel"
                 class="kg-zoom-toolbar__slider"
@@ -197,43 +196,24 @@
                 @update:model-value="setZoom"
               />
               <div class="kg-zoom-toolbar__value">{{ zoomLevelLabel }}</div>
+
               <q-btn
+                v-for="btn in zoomButtons"
+                :key="btn.icon"
                 flat
                 round
                 dense
-                icon="zoom_in"
-                :aria-label="t('zoomIn')"
+                :icon="btn.icon"
+                :aria-label="t(btn.label)"
                 :disable="!hasGraph"
-                @click="zoomIn"
+                @click="btn.action"
               >
-                <q-tooltip>{{ t('zoomIn') }}</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat
-                round
-                dense
-                icon="fit_screen"
-                :aria-label="t('zoomFit')"
-                :disable="!hasGraph"
-                @click="fitGraph"
-              >
-                <q-tooltip>{{ t('zoomFit') }}</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat
-                round
-                dense
-                icon="restart_alt"
-                :aria-label="t('zoomReset')"
-                :disable="!hasGraph"
-                @click="resetZoom"
-              >
-                <q-tooltip>{{ t('zoomReset') }}</q-tooltip>
+                <q-tooltip>{{ t(btn.label) }}</q-tooltip>
               </q-btn>
             </div>
           </div>
 
-          <!-- Botão flutuante no canto direito -->
+          <!-- Floating button in the right corner -->
           <q-btn
             :icon="rightDrawerOpen ? 'chevron_right' : 'chevron_left'"
             color="primary"
@@ -268,6 +248,52 @@
   cytoscape.use(coseBilkent)
   cytoscape.use(expandCollapse)
 
+  // ---- Constants ----
+  const MIN_ZOOM = 0.2
+  const MAX_ZOOM = 3
+  const ZOOM_STEP = 0.1
+  const LAYOUT_PADDING = 56
+  const LAYOUT_MAX_AUTO_ZOOM = 1
+  const LAYOUT_SPACING_FACTOR = 0.85
+
+  // Layout-specific overrides, kept outside the function so they are not
+  // recreated on each getLayoutOptions() call.
+  const LAYOUT_OVERRIDES = {
+    cose: {
+      randomize: true,
+      componentSpacing: 28,
+      nodeRepulsion: 1500,
+      nodeOverlap: 6,
+      idealEdgeLength: 46,
+      edgeElasticity: 64,
+      gravity: 1.45,
+      numIter: 750,
+      initialTemp: 240,
+      coolingFactor: 0.95,
+    },
+    'cose-bilkent': {
+      quality: 'default',
+      randomize: true,
+      nodeRepulsion: 3000,
+      idealEdgeLength: 48,
+      edgeElasticity: 0.55,
+      gravity: 0.45,
+      gravityRange: 2.6,
+      tilingPaddingVertical: 8,
+      tilingPaddingHorizontal: 8,
+      animationDuration: 0,
+    },
+    circle: { spacingFactor: 0.78 },
+    concentric: { minNodeSpacing: 34, spacingFactor: 0.8 },
+    random: { spacingFactor: 0.75 },
+  }
+
+  // ---- Composables / store ----
+  const { t } = useI18n()
+  const prjStore = useProjectStore()
+  const optLayout = kgview.getOptLayout()
+
+  // ---- State ----
   const cyContainer = ref(null)
   const cy = ref(null)
   const rightDrawerOpen = ref(false)
@@ -275,21 +301,10 @@
   const elements = ref([])
   const selectedElement = ref(null)
   const filterText = ref('')
-  const prjStore = useProjectStore()
-  const { t } = useI18n()
+  const filterDistance = ref(1)
   const listElements = ref([])
   const history = ref([])
   const creatingProject = ref(false)
-  const filterDistance = ref(1)
-  const canUndo = computed(() => history.value.length > 0)
-  const MIN_ZOOM = 0.2
-  const MAX_ZOOM = 3
-  const ZOOM_STEP = 0.1
-  const LAYOUT_PADDING = 56
-  const LAYOUT_MAX_AUTO_ZOOM = 1
-  const LAYOUT_SPACING_FACTOR = 0.85
-  const zoomLevelLabel = computed(() => `${Math.round(zoomLevel.value * 100)}%`)
-  const hasGraph = computed(() => Boolean(cy.value))
   let activeLayout = null
 
   const metrics = reactive({
@@ -299,25 +314,31 @@
     maxDegree: 0,
     minDegree: 0,
     density: 0,
-    components: 0,
   })
-  const prj = computed({
-    get: () => prjStore.getProject,
-  })
+
+  const selectedElements = reactive({ nodes: [], edges: [] })
+
+  const prj = computed(() => prjStore.getProject)
   const selectedLayout = ref(prj.value.layout || 'cose')
 
-  const selectedElements = reactive({
-    nodes: [],
-    edges: [],
-  })
+  // ---- Derived computeds ----
+  const canUndo = computed(() => history.value.length > 0)
+  const hasGraph = computed(() => Boolean(cy.value))
+  const zoomLevelLabel = computed(() => `${Math.round(zoomLevel.value * 100)}%`)
 
-  const optLayout = kgview.getOptLayout()
+  // Zoom buttons to the right of the slider
+  // (zoom_out stays fixed on the left in the template)
+  const zoomButtons = [
+    { icon: 'zoom_in', label: 'zoomIn', action: zoomIn },
+    { icon: 'fit_screen', label: 'zoomFit', action: fitGraph },
+    { icon: 'restart_alt', label: 'zoomReset', action: resetZoom },
+  ]
 
   onMounted(() => {
     renderGraph()
   })
 
-  const renderGraph = async () => {
+  async function renderGraph() {
     if (!cyContainer.value) {
       console.error('Container Cytoscape não encontrado')
       return
@@ -342,62 +363,46 @@
 
       cy.value.lassoSelectionEnabled(true)
       cy.value.on('zoom', syncZoomLevel)
-
-      cy.value.on('tap', 'node, edge', (event) => {
-        getDetail(event.target)
-      })
+      cy.value.on('tap', 'node, edge', (event) => getDetail(event.target))
 
       cy.value.cxtmenu({
         menuRadius: 80,
         selector: 'node',
         commands: [
-          {
-            content: '🔍 Detalhes',
-            select: (ele) => {
-              getDetail(ele)
-            },
-          },
-          {
-            content: '🎨 Mudar cor',
-            select: (ele) => {
-              ele.style('background-color', '#f00')
-            },
-          },
-          {
-            content: '✏️ Criar grupo',
-            select: (ele) => {
-              kgview.createGroup(cy, ele)
-            },
-          },
+          { content: '🔍 Detalhes', select: (ele) => getDetail(ele) },
+          { content: '🎨 Mudar cor', select: (ele) => ele.style('background-color', '#f00') },
+          { content: '✏️ Criar grupo', select: (ele) => kgview.createGroup(cy, ele) },
         ],
       })
 
-      const updateSelection = () => {
-        selectedElements.nodes = cy.value.$('node:selected').map((ele) => ele.data())
-        selectedElements.edges = cy.value.$('edge:selected').map((ele) => ele.data())
-      }
-
       cy.value.on('select unselect lassoend', updateSelection)
+      cy.value.on('free', 'node', (e) => {
+        kgview.setGroup(e, cy)
+        saveState()
+      })
 
       cy.value.resize()
-      cy.value.zoom(cy.value.zoom())
       syncZoomLevel()
       cy.value.elements().unselect()
-      setupDragDrop()
       saveState()
     } catch (error) {
       console.error('Erro ao carregar dados do projeto:', error)
     }
   }
 
+  function updateSelection() {
+    selectedElements.nodes = cy.value.$('node:selected').map((ele) => ele.data())
+    selectedElements.edges = cy.value.$('edge:selected').map((ele) => ele.data())
+  }
+
   function getDetail(e) {
     selectedElement.value = kgview.getDetail(e)
   }
 
+  // ---- Zoom ----
   function clampZoom(value) {
-    const parsedValue = Number(value)
-    const nextZoom = Number.isFinite(parsedValue) ? parsedValue : 1
-    return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextZoom))
+    const parsed = Number(value)
+    return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number.isFinite(parsed) ? parsed : 1))
   }
 
   function normalizeZoom(value) {
@@ -405,110 +410,62 @@
   }
 
   function getRenderedCenter() {
-    const box = cyContainer.value?.getBoundingClientRect()
-    return {
-      x: box ? box.width / 2 : 0,
-      y: box ? box.height / 2 : 0,
-    }
+    const { width = 0, height = 0 } = cyContainer.value?.getBoundingClientRect() || {}
+    return { x: width / 2, y: height / 2 }
   }
 
   function syncZoomLevel() {
-    if (!cy.value) return
-    zoomLevel.value = normalizeZoom(cy.value.zoom())
+    if (cy.value) zoomLevel.value = normalizeZoom(cy.value.zoom())
   }
 
   function setZoom(value) {
     if (!cy.value) return
+    zoomLevel.value = normalizeZoom(value)
+    cy.value.zoom({ level: zoomLevel.value, renderedPosition: getRenderedCenter() })
+  }
 
-    const nextZoom = normalizeZoom(value)
-    zoomLevel.value = nextZoom
-    cy.value.zoom({
-      level: nextZoom,
-      renderedPosition: getRenderedCenter(),
-    })
+  function stepZoom(delta) {
+    setZoom(zoomLevel.value + delta)
   }
 
   function zoomIn() {
-    setZoom(zoomLevel.value + ZOOM_STEP)
+    stepZoom(ZOOM_STEP)
   }
 
   function zoomOut() {
-    setZoom(zoomLevel.value - ZOOM_STEP)
+    stepZoom(-ZOOM_STEP)
   }
 
   function resetZoom() {
     if (!cy.value) return
-
     setZoom(1)
     cy.value.center(cy.value.elements())
   }
 
   function fitGraph() {
     if (!cy.value) return
-
-    const visibleElements = cy.value.elements()
-    if (visibleElements.empty()) return
-
-    cy.value.fit(visibleElements, 48)
+    const visible = cy.value.elements()
+    if (visible.empty()) return
+    cy.value.fit(visible, 48)
     syncZoomLevel()
   }
 
+  // ---- Layout ----
   function getLayoutOptions(layoutName, overrides = {}) {
-    const baseOptions = {
+    return {
       name: layoutName,
       fit: false,
       padding: LAYOUT_PADDING,
       animate: false,
       spacingFactor: LAYOUT_SPACING_FACTOR,
       nodeDimensionsIncludeLabels: false,
-    }
-    const optionsByLayout = {
-      cose: {
-        randomize: true,
-        componentSpacing: 28,
-        nodeRepulsion: 1500,
-        nodeOverlap: 6,
-        idealEdgeLength: 46,
-        edgeElasticity: 64,
-        gravity: 1.45,
-        numIter: 750,
-        initialTemp: 240,
-        coolingFactor: 0.95,
-      },
-      'cose-bilkent': {
-        quality: 'default',
-        randomize: true,
-        nodeRepulsion: 3000,
-        idealEdgeLength: 48,
-        edgeElasticity: 0.55,
-        gravity: 0.45,
-        gravityRange: 2.6,
-        tilingPaddingVertical: 8,
-        tilingPaddingHorizontal: 8,
-        animationDuration: 0,
-      },
-      circle: {
-        spacingFactor: 0.78,
-      },
-      concentric: {
-        minNodeSpacing: 34,
-        spacingFactor: 0.8,
-      },
-      random: {
-        spacingFactor: 0.75,
-      },
-    }
-
-    return {
-      ...baseOptions,
-      ...(optionsByLayout[layoutName] || {}),
+      ...(LAYOUT_OVERRIDES[layoutName] || {}),
       ...overrides,
     }
   }
 
   function stopActiveLayout() {
     if (!activeLayout) return
-
     const layout = activeLayout
     activeLayout = null
     layout.stop()
@@ -516,36 +473,29 @@
 
   function fitLayoutView() {
     if (!cy.value) return
+    const visible = cy.value.elements()
+    if (visible.empty()) return
 
-    const visibleElements = cy.value.elements()
-    if (visibleElements.empty()) return
-
-    cy.value.fit(visibleElements, LAYOUT_PADDING)
-
+    cy.value.fit(visible, LAYOUT_PADDING)
     if (cy.value.zoom() > LAYOUT_MAX_AUTO_ZOOM) {
       cy.value.zoom(LAYOUT_MAX_AUTO_ZOOM)
-      cy.value.center(visibleElements)
+      cy.value.center(visible)
     }
-
     syncZoomLevel()
   }
 
   function refreshLayout() {
     if (!cy.value) return
-
     stopActiveLayout()
-
     cy.value.resize()
 
     const nextLayout = cy.value.layout(
       getLayoutOptions(selectedLayout.value, {
         stop: () => {
           fitLayoutView()
-          if (activeLayout === nextLayout) {
-            activeLayout = null
-          }
+          if (activeLayout === nextLayout) activeLayout = null
         },
-      }),
+      })
     )
 
     activeLayout = nextLayout
@@ -559,6 +509,7 @@
     prjStore.setLayout({ layout })
   }
 
+  // ---- Filter ----
   function filterGraph(val) {
     if (!cy.value) return
 
@@ -572,15 +523,13 @@
       return
     }
 
-    const matchedNodes = cy.value.nodes().filter((node) => {
-      const label = (node.data('label') || '').toString().toLowerCase()
-      return label.includes(needle)
-    })
+    const matchedNodes = cy.value
+      .nodes()
+      .filter((node) => (node.data('label') || '').toString().toLowerCase().includes(needle))
 
     const maxDistance = Math.max(0, Number(filterDistance.value) || 0)
     const keep = getElementsWithinDistance(matchedNodes, maxDistance)
-    const remove = cy.value.elements().difference(keep)
-    cy.value.remove(remove)
+    cy.value.remove(cy.value.elements().difference(keep))
     refreshLayout()
   }
 
@@ -594,10 +543,7 @@
       const nextNodes = nextEdges.connectedNodes().difference(keepNodes)
 
       keepEdges = keepEdges.union(nextEdges)
-
-      if (nextNodes.empty()) {
-        break
-      }
+      if (nextNodes.empty()) break
 
       keepNodes = keepNodes.union(nextNodes)
       frontier = nextNodes
@@ -606,18 +552,58 @@
     return keepNodes.union(keepEdges)
   }
 
+  function cloneGraphElements(graph = {}) {
+    return JSON.parse(JSON.stringify({ nodes: graph.nodes || [], edges: graph.edges || [] }))
+  }
+
+  function mergeElementsById(fullItems, visibleItems) {
+    const visibleById = new Map()
+    const knownIds = new Set()
+
+    visibleItems.forEach((item) => {
+      const id = item?.data?.id
+      if (id) visibleById.set(id, item)
+    })
+
+    const merged = fullItems.map((item) => {
+      const id = item?.data?.id
+      if (!id) return item
+
+      knownIds.add(id)
+      return visibleById.get(id) || item
+    })
+
+    visibleItems.forEach((item) => {
+      const id = item?.data?.id
+      if (id && !knownIds.has(id)) {
+        knownIds.add(id)
+        merged.push(item)
+      }
+    })
+
+    return merged
+  }
+
+  function getFullGraphSnapshot(visibleElements) {
+    const full = cloneGraphElements(elements.value)
+    const visible = cloneGraphElements(visibleElements)
+
+    return {
+      nodes: mergeElementsById(full.nodes, visible.nodes),
+      edges: mergeElementsById(full.edges, visible.edges),
+    }
+  }
+
   async function createProjectFromFilteredGraph() {
     if (!cy.value) return
 
     const snapshot = cy.value.json().elements || { nodes: [], edges: [] }
-    const totalElements = snapshot.nodes.length + snapshot.edges.length
-
-    if (totalElements === 0) {
+    if (snapshot.nodes.length + snapshot.edges.length === 0) {
       service.msgYellow(t('createProjectFromFilterEmpty'))
       return
     }
 
-    const baseName = prj.value?.name ? `${prj.value.name}` : t('project')
+    const baseName = prj.value?.name || t('project')
     const defaultName = filterText.value
       ? `${baseName} - ${filterText.value}`
       : `${baseName} - ${t('filter')}`
@@ -627,11 +613,7 @@
 
     creatingProject.value = true
     try {
-      await api.post('project', {
-        name,
-        layout: selectedLayout.value,
-        kg: snapshot,
-      })
+      await api.post('project', { name, layout: selectedLayout.value, kg: snapshot })
       service.msgGreen(t('createProjectFromFilterSuccess'))
     } catch (error) {
       service.msgError(error?.response?.data?.message || error?.message || t('failed'))
@@ -640,72 +622,55 @@
     }
   }
 
-  function setupDragDrop() {
-    cy.value.on('free', 'node', (e) => {
-      kgview.setGroup(e, cy)
-      //kgview.updateElement(e.target)
-      saveState()
-    })
-  }
-  function collapse() {
-    kgview.collapse(cy)
-  }
-
-  function expand() {
-    kgview.expand(cy)
-  }
-
+  // ---- Topological list ----
   function getList() {
-    const nodes = cy.value.nodes()
     const visited = new Set()
     const result = []
 
     function visit(node) {
       if (visited.has(node.id())) return
       visited.add(node.id())
-
-      // visit all outgoing edges' targets
       node.outgoers('edge').targets().forEach(visit)
-
-      result.unshift(node.id()) // prepend
+      result.unshift(node.id())
     }
 
-    nodes.forEach((node) => visit(node))
+    cy.value.nodes().forEach(visit)
     listElements.value = result
   }
 
+  // ---- History ----
   function saveState() {
     const json = cy.value.json()
-    kgview.updateKg(prj.value.id, JSON.stringify(json.elements))
+    const fullElements = getFullGraphSnapshot(json.elements)
+
+    elements.value = fullElements
+    kgview.updateKg(prj.value.id, JSON.stringify(fullElements))
     history.value.push(JSON.parse(JSON.stringify(json)))
   }
 
   function undo() {
-    if (history.value.length > 0) {
-      const lastState = history.value.pop()
-      cy.value.json(lastState)
-      cy.value.resize()
-      cy.value.run()
-    }
+    if (!history.value.length) return
+    cy.value.json(history.value.pop())
+    cy.value.resize()
+    cy.value.run()
   }
 
+  // ---- Metrics ----
   function calculateMetrics() {
     const nodes = cy.value.nodes()
-    const edges = cy.value.edges()
-
     const degrees = nodes.map((n) => n.degree())
     const totalNodes = nodes.length
-    const totalEdges = edges.length
+    const totalEdges = cy.value.edges().length
 
     metrics.nodes = totalNodes
     metrics.edges = totalEdges
     metrics.avgDegree = totalNodes ? degrees.reduce((a, b) => a + b, 0) / totalNodes : 0
     metrics.maxDegree = Math.max(...degrees, 0)
     metrics.minDegree = Math.min(...degrees, 0)
-
     metrics.density = totalNodes > 1 ? (2 * totalEdges) / (totalNodes * (totalNodes - 1)) : 0
   }
 
+  // ---- Guided tour ----
   function startTour() {
     const tour = new Shepherd.Tour({
       defaultStepOptions: {
@@ -716,7 +681,6 @@
     })
 
     kgview.addStep(tour, t)
-
     tour.start()
   }
 </script>
