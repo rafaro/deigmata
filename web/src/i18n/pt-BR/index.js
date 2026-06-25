@@ -59,6 +59,7 @@ export default {
   createProjectFromFilterPrompt: 'Nome do novo projeto',
   createProjectFromFilterEmpty: 'Nenhum elemento filtrado para criar o projeto.',
   createProjectFromFilterSuccess: 'Projeto criado a partir do filtro.',
+  clearFilter: 'Limpar filtro',
   filterDistance: 'Distância dos nodos filtrados',
   filterDistanceStep: 'salto',
   filterDistanceSteps: 'saltos',

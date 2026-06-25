@@ -259,6 +259,7 @@ class MyKgView {
           'text-outline-width': 2,
           'text-outline-color': '#fff',
           'font-size': '12px',
+          'min-zoomed-font-size': 8,
         },
       },
       {
@@ -277,6 +278,7 @@ class MyKgView {
           'text-background-opacity': 1,
           'text-background-padding': '3px',
           'text-background-shape': 'roundrectangle',
+          'min-zoomed-font-size': 9,
         },
       },
       {

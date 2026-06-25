@@ -47,8 +47,22 @@
                   dense
                   v-model="filterText"
                   :label="t('filter')"
-                  @update:model-value="filterGraph"
-                />
+                  @update:model-value="queueFilterGraph"
+                  @keyup.enter="applyFilterGraph"
+                >
+                  <template v-if="filterText" #append>
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      icon="close"
+                      :aria-label="t('clearFilter')"
+                      @click.stop="clearFilterText"
+                    >
+                      <q-tooltip>{{ t('clearFilter') }}</q-tooltip>
+                    </q-btn>
+                  </template>
+                </q-input>
               </div>
               <div id="filterDistance" class="col-12 q-mb-md">
                 <div class="row items-center justify-between q-mb-xs">
@@ -66,7 +80,7 @@
                   :step="1"
                   snap
                   markers
-                  @update:model-value="() => filterGraph(filterText)"
+                  @update:model-value="queueFilterGraph"
                 />
               </div>
               <div class="col-12 q-mb-sm">
@@ -229,7 +243,7 @@
 </template>
 
 <script setup>
-  import { onMounted, ref, reactive, computed } from 'vue'
+  import { onBeforeUnmount, onMounted, ref, reactive, computed } from 'vue'
   import { useProjectStore } from 'src/stores/project'
   import { useI18n } from 'vue-i18n'
   import { kgview } from 'src/boot/kgview'
@@ -255,6 +269,9 @@
   const LAYOUT_PADDING = 56
   const LAYOUT_MAX_AUTO_ZOOM = 1
   const LAYOUT_SPACING_FACTOR = 0.85
+  const FILTER_DEBOUNCE_MS = 300
+  const PERSIST_DEBOUNCE_MS = 800
+  const MAX_HISTORY_STATES = 10
 
   // Layout-specific overrides, kept outside the function so they are not
   // recreated on each getLayoutOptions() call.
@@ -306,6 +323,10 @@
   const history = ref([])
   const creatingProject = ref(false)
   let activeLayout = null
+  let graphIndex = createEmptyGraphIndex()
+  let filterTimer = null
+  let persistTimer = null
+  let pendingPersistElements = null
 
   const metrics = reactive({
     nodes: 0,
@@ -338,6 +359,16 @@
     renderGraph()
   })
 
+  onBeforeUnmount(() => {
+    clearFilterTimer()
+    flushPendingKgPersist()
+    stopActiveLayout()
+    if (cy.value) {
+      cy.value.destroy()
+      cy.value = null
+    }
+  })
+
   async function renderGraph() {
     if (!cyContainer.value) {
       console.error('Container Cytoscape não encontrado')
@@ -359,7 +390,11 @@
         minZoom: MIN_ZOOM,
         maxZoom: MAX_ZOOM,
         wheelSensitivity: 0.2,
+        hideEdgesOnViewport: true,
+        textureOnViewport: true,
+        motionBlur: true,
       })
+      graphIndex = buildCyGraphIndex()
 
       cy.value.lassoSelectionEnabled(true)
       cy.value.on('zoom', syncZoomLevel)
@@ -376,15 +411,16 @@
       })
 
       cy.value.on('select unselect lassoend', updateSelection)
+      cy.value.on('grab', 'node', pushHistoryState)
       cy.value.on('free', 'node', (e) => {
         kgview.setGroup(e, cy)
-        saveState()
+        saveState({ recordHistory: false })
       })
 
       cy.value.resize()
       syncZoomLevel()
       cy.value.elements().unselect()
-      saveState()
+      history.value = []
     } catch (error) {
       console.error('Erro ao carregar dados do projeto:', error)
     }
@@ -397,6 +433,21 @@
 
   function getDetail(e) {
     selectedElement.value = kgview.getDetail(e)
+  }
+
+  function getVisibleElements() {
+    if (!cy.value) return null
+    return cy.value.elements().filter((element) => element.visible())
+  }
+
+  function getVisibleNodes() {
+    if (!cy.value) return null
+    return cy.value.nodes().filter((node) => node.visible())
+  }
+
+  function getVisibleEdges() {
+    if (!cy.value) return null
+    return cy.value.edges().filter((edge) => edge.visible())
   }
 
   // ---- Zoom ----
@@ -438,14 +489,16 @@
 
   function resetZoom() {
     if (!cy.value) return
+    const visible = getVisibleElements()
+    if (!visible || visible.empty()) return
     setZoom(1)
-    cy.value.center(cy.value.elements())
+    cy.value.center(visible)
   }
 
   function fitGraph() {
     if (!cy.value) return
-    const visible = cy.value.elements()
-    if (visible.empty()) return
+    const visible = getVisibleElements()
+    if (!visible || visible.empty()) return
     cy.value.fit(visible, 48)
     syncZoomLevel()
   }
@@ -473,8 +526,8 @@
 
   function fitLayoutView() {
     if (!cy.value) return
-    const visible = cy.value.elements()
-    if (visible.empty()) return
+    const visible = getVisibleElements()
+    if (!visible || visible.empty()) return
 
     cy.value.fit(visible, LAYOUT_PADDING)
     if (cy.value.zoom() > LAYOUT_MAX_AUTO_ZOOM) {
@@ -488,8 +541,10 @@
     if (!cy.value) return
     stopActiveLayout()
     cy.value.resize()
+    const visible = getVisibleElements()
+    if (!visible || visible.empty()) return
 
-    const nextLayout = cy.value.layout(
+    const nextLayout = visible.layout(
       getLayoutOptions(selectedLayout.value, {
         stop: () => {
           fitLayoutView()
@@ -510,50 +565,236 @@
   }
 
   // ---- Filter ----
-  function filterGraph(val) {
-    if (!cy.value) return
-
-    stopActiveLayout()
-    cy.value.elements().remove()
-    cy.value.add(elements.value)
-
-    const needle = (val || '').toString().trim().toLowerCase()
-    if (!needle) {
-      refreshLayout()
-      return
-    }
-
-    const matchedNodes = cy.value
-      .nodes()
-      .filter((node) => (node.data('label') || '').toString().toLowerCase().includes(needle))
-
-    const maxDistance = Math.max(0, Number(filterDistance.value) || 0)
-    const keep = getElementsWithinDistance(matchedNodes, maxDistance)
-    cy.value.remove(cy.value.elements().difference(keep))
-    refreshLayout()
+  function clearFilterTimer() {
+    if (!filterTimer) return
+    window.clearTimeout(filterTimer)
+    filterTimer = null
   }
 
-  function getElementsWithinDistance(nodes, maxDistance) {
-    let keepNodes = nodes
-    let keepEdges = cy.value.collection()
-    let frontier = nodes
+  function queueFilterGraph() {
+    clearFilterTimer()
+    filterTimer = window.setTimeout(() => {
+      filterTimer = null
+      applyFilterGraph()
+    }, FILTER_DEBOUNCE_MS)
+  }
 
-    for (let distance = 0; distance < maxDistance; distance += 1) {
-      const nextEdges = frontier.connectedEdges().difference(keepEdges)
-      const nextNodes = nextEdges.connectedNodes().difference(keepNodes)
+  function clearFilterText() {
+    filterText.value = ''
+    applyFilterGraph()
+  }
 
-      keepEdges = keepEdges.union(nextEdges)
-      if (nextNodes.empty()) break
+  function applyFilterGraph() {
+    if (!cy.value) return
 
-      keepNodes = keepNodes.union(nextNodes)
-      frontier = nextNodes
+    clearFilterTimer()
+    stopActiveLayout()
+
+    const needle = normalizeSearchText(filterText.value)
+    cy.value.batch(() => {
+      if (!needle) {
+        cy.value.elements().show()
+        return
+      }
+
+      const keepIds = getFilteredElementIds(needle, Math.max(0, Number(filterDistance.value) || 0))
+      cy.value.elements().hide()
+      keepIds.forEach((id) => cy.value.getElementById(id).show())
+    })
+
+    fitGraph()
+  }
+
+  function normalizeSearchText(value) {
+    return (value || '').toString().trim().toLowerCase()
+  }
+
+  function getFilteredElementIds(needle, maxDistance) {
+    const keepNodeIds = new Set()
+    const keepEdgeIds = new Set()
+    let frontierNodeIds = new Set()
+
+    graphIndex.nodeLabelsById.forEach((label, nodeId) => {
+      if (label.includes(needle)) {
+        keepNodeIds.add(nodeId)
+        frontierNodeIds.add(nodeId)
+      }
+    })
+
+    for (let distance = 0; distance < maxDistance && frontierNodeIds.size > 0; distance += 1) {
+      const nextFrontierNodeIds = new Set()
+
+      frontierNodeIds.forEach((nodeId) => {
+        const edgeIds = graphIndex.edgeIdsByNodeId.get(nodeId)
+        if (!edgeIds) return
+
+        edgeIds.forEach((edgeId) => {
+          const endpoints = graphIndex.edgeEndpointsById.get(edgeId)
+          if (!endpoints) return
+
+          keepEdgeIds.add(edgeId)
+
+          endpoints.forEach((endpointId) => {
+            if (!keepNodeIds.has(endpointId)) {
+              keepNodeIds.add(endpointId)
+              nextFrontierNodeIds.add(endpointId)
+            }
+          })
+        })
+      })
+
+      frontierNodeIds = nextFrontierNodeIds
     }
 
-    return keepNodes.union(keepEdges)
+    includeParentNodeIds(keepNodeIds)
+    return new Set([...keepNodeIds, ...keepEdgeIds])
+  }
+
+  function includeParentNodeIds(nodeIds) {
+    Array.from(nodeIds).forEach((nodeId) => {
+      let parentId = graphIndex.parentIdsByNodeId.get(nodeId)
+      while (parentId && !nodeIds.has(parentId)) {
+        nodeIds.add(parentId)
+        parentId = graphIndex.parentIdsByNodeId.get(parentId)
+      }
+    })
+  }
+
+  function createEmptyGraphIndex() {
+    return {
+      nodeLabelsById: new Map(),
+      edgeIdsByNodeId: new Map(),
+      edgeEndpointsById: new Map(),
+      parentIdsByNodeId: new Map(),
+    }
+  }
+
+  function getGraphElementGroups(graph = {}) {
+    if (Array.isArray(graph)) {
+      return graph.reduce(
+        (acc, item) => {
+          const data = getElementData(item)
+          if (data.source && data.target) {
+            acc.edges.push(item)
+          } else {
+            acc.nodes.push(item)
+          }
+          return acc
+        },
+        { nodes: [], edges: [] }
+      )
+    }
+
+    return {
+      nodes: Array.isArray(graph.nodes) ? graph.nodes : [],
+      edges: Array.isArray(graph.edges) ? graph.edges : [],
+    }
+  }
+
+  function getElementData(item = {}) {
+    return item.data || {}
+  }
+
+  function ensureIndexNode(index, nodeId) {
+    if (!index.edgeIdsByNodeId.has(nodeId)) index.edgeIdsByNodeId.set(nodeId, new Set())
+  }
+
+  function buildGraphIndex(graph = {}) {
+    const index = createEmptyGraphIndex()
+    const { nodes, edges } = getGraphElementGroups(graph)
+
+    nodes.forEach((node) => {
+      const data = getElementData(node)
+      const nodeId = data.id
+      if (!nodeId) return
+
+      index.nodeLabelsById.set(nodeId, normalizeSearchText(data.label || nodeId))
+      if (data.parent) index.parentIdsByNodeId.set(nodeId, data.parent)
+      ensureIndexNode(index, nodeId)
+    })
+
+    edges.forEach((edge) => {
+      const data = getElementData(edge)
+      const edgeId = data.id
+      const source = data.source
+      const target = data.target
+      if (!edgeId || !source || !target) return
+
+      index.edgeEndpointsById.set(edgeId, [source, target])
+      ensureIndexNode(index, source)
+      ensureIndexNode(index, target)
+      index.edgeIdsByNodeId.get(source).add(edgeId)
+      index.edgeIdsByNodeId.get(target).add(edgeId)
+    })
+
+    return index
+  }
+
+  function buildCyGraphIndex() {
+    const index = createEmptyGraphIndex()
+    if (!cy.value) return index
+
+    cy.value.nodes().forEach((node) => {
+      const nodeId = node.id()
+      if (!nodeId) return
+
+      const parent = node.parent()
+      index.nodeLabelsById.set(nodeId, normalizeSearchText(node.data('label') || nodeId))
+      if (parent.length > 0) index.parentIdsByNodeId.set(nodeId, parent.id())
+      ensureIndexNode(index, nodeId)
+    })
+
+    cy.value.edges().forEach((edge) => {
+      const edgeId = edge.id()
+      const source = edge.source().id()
+      const target = edge.target().id()
+      if (!edgeId || !source || !target) return
+
+      index.edgeEndpointsById.set(edgeId, [source, target])
+      ensureIndexNode(index, source)
+      ensureIndexNode(index, target)
+      index.edgeIdsByNodeId.get(source).add(edgeId)
+      index.edgeIdsByNodeId.get(target).add(edgeId)
+    })
+
+    return index
+  }
+
+  function stripTransientVisibility(item) {
+    if (!item || !item.style) return item
+
+    const style = { ...item.style }
+    delete style.display
+    delete style.visibility
+
+    const cleanItem = { ...item }
+    if (Object.keys(style).length > 0) {
+      cleanItem.style = style
+    } else {
+      delete cleanItem.style
+    }
+
+    return cleanItem
   }
 
   function cloneGraphElements(graph = {}) {
-    return JSON.parse(JSON.stringify({ nodes: graph.nodes || [], edges: graph.edges || [] }))
+    const { nodes, edges } = getGraphElementGroups(graph)
+    return JSON.parse(
+      JSON.stringify({
+        nodes: nodes.map(stripTransientVisibility),
+        edges: edges.map(stripTransientVisibility),
+      })
+    )
+  }
+
+  function getVisibleElementsSnapshot() {
+    const nodes = getVisibleNodes()
+    const edges = getVisibleEdges()
+
+    return cloneGraphElements({
+      nodes: nodes ? nodes.map((node) => node.json()) : [],
+      edges: edges ? edges.map((edge) => edge.json()) : [],
+    })
   }
 
   function mergeElementsById(fullItems, visibleItems) {
@@ -597,7 +838,7 @@
   async function createProjectFromFilteredGraph() {
     if (!cy.value) return
 
-    const snapshot = cy.value.json().elements || { nodes: [], edges: [] }
+    const snapshot = getVisibleElementsSnapshot()
     if (snapshot.nodes.length + snapshot.edges.length === 0) {
       service.msgYellow(t('createProjectFromFilterEmpty'))
       return
@@ -626,41 +867,97 @@
   function getList() {
     const visited = new Set()
     const result = []
+    const visibleNodes = getVisibleNodes()
+    if (!visibleNodes) return
+    const visibleNodeIds = new Set(visibleNodes.map((node) => node.id()))
 
     function visit(node) {
       if (visited.has(node.id())) return
       visited.add(node.id())
-      node.outgoers('edge').targets().forEach(visit)
+      node
+        .outgoers('edge')
+        .filter((edge) => edge.visible())
+        .targets()
+        .filter((target) => visibleNodeIds.has(target.id()))
+        .forEach(visit)
       result.unshift(node.id())
     }
 
-    cy.value.nodes().forEach(visit)
+    visibleNodes.forEach(visit)
     listElements.value = result
   }
 
   // ---- History ----
-  function saveState() {
+  function pushHistoryState() {
+    if (!cy.value) return
+
+    history.value.push(JSON.parse(JSON.stringify(cy.value.json())))
+    if (history.value.length > MAX_HISTORY_STATES) history.value.shift()
+  }
+
+  function scheduleKgPersist(fullElements) {
+    pendingPersistElements = fullElements
+    if (persistTimer) window.clearTimeout(persistTimer)
+
+    persistTimer = window.setTimeout(() => {
+      persistTimer = null
+      flushPendingKgPersist()
+    }, PERSIST_DEBOUNCE_MS)
+  }
+
+  function flushPendingKgPersist() {
+    if (persistTimer) {
+      window.clearTimeout(persistTimer)
+      persistTimer = null
+    }
+
+    if (!pendingPersistElements) return
+    const fullElements = pendingPersistElements
+    pendingPersistElements = null
+    kgview
+      .updateKg(prj.value.id, JSON.stringify(fullElements))
+      .catch((error) => console.error('Erro ao salvar KG:', error))
+  }
+
+  function saveState({ persist = true, recordHistory = true } = {}) {
     const json = cy.value.json()
     const fullElements = getFullGraphSnapshot(json.elements)
 
     elements.value = fullElements
-    kgview.updateKg(prj.value.id, JSON.stringify(fullElements))
-    history.value.push(JSON.parse(JSON.stringify(json)))
+    graphIndex = cy.value ? buildCyGraphIndex() : buildGraphIndex(fullElements)
+
+    if (persist) scheduleKgPersist(fullElements)
+    if (recordHistory) history.value.push(JSON.parse(JSON.stringify(json)))
   }
 
   function undo() {
     if (!history.value.length) return
+    stopActiveLayout()
     cy.value.json(history.value.pop())
     cy.value.resize()
-    cy.value.run()
+    saveState({ recordHistory: false })
+    fitGraph()
   }
 
   // ---- Metrics ----
   function calculateMetrics() {
-    const nodes = cy.value.nodes()
-    const degrees = nodes.map((n) => n.degree())
+    const nodes = getVisibleNodes()
+    const edges = getVisibleEdges()
+    if (!nodes || !edges) return
+    const degreesByNodeId = new Map(nodes.map((node) => [node.id(), 0]))
+
+    edges.forEach((edge) => {
+      const sourceId = edge.source().id()
+      const targetId = edge.target().id()
+      if (degreesByNodeId.has(sourceId))
+        degreesByNodeId.set(sourceId, degreesByNodeId.get(sourceId) + 1)
+      if (degreesByNodeId.has(targetId))
+        degreesByNodeId.set(targetId, degreesByNodeId.get(targetId) + 1)
+    })
+
+    const degrees = Array.from(degreesByNodeId.values())
     const totalNodes = nodes.length
-    const totalEdges = cy.value.edges().length
+    const totalEdges = edges.length
 
     metrics.nodes = totalNodes
     metrics.edges = totalEdges
