@@ -20,8 +20,6 @@
       <div class="q-pa-md">
         <div class="text-h6">{{ t('detail') }}</div>
         <div class="row">
-          <br />
-          <div id="zoomLevel" class="col-10">📏 Zoom: {{ zoomLevel }}x</div>
           <div id="selectLayout" class="col-10 q-mb-sm">
             <q-select
               filled
@@ -57,9 +55,7 @@
                   <span class="text-caption text-grey-7">{{ t('filterDistance') }}</span>
                   <q-badge color="primary">
                     {{ filterDistance }}
-                    {{
-                      filterDistance === 1 ? t('filterDistanceStep') : t('filterDistanceSteps')
-                    }}
+                    {{ filterDistance === 1 ? t('filterDistanceStep') : t('filterDistanceSteps') }}
                   </q-badge>
                 </div>
                 <q-slider
@@ -172,11 +168,70 @@
     <q-page-container>
       <q-page class="q-pa-md">
         <!-- Painel central (grafo) -->
-        <div
-          class="q-pa-sm bg-grey-2 rounded-borders shadow-2 relative-position"
-          style="height: 80vh"
-        >
+        <div class="kg-graph-panel q-pa-sm bg-grey-2 rounded-borders shadow-2 relative-position">
           <div ref="cyContainer" id="cytoscape-container" class="fit" />
+
+          <div id="zoomLevel" class="kg-zoom-toolbar absolute-bottom-left q-ml-md q-mb-md">
+            <div class="row items-center no-wrap q-gutter-xs">
+              <q-btn
+                flat
+                round
+                dense
+                icon="zoom_out"
+                :aria-label="t('zoomOut')"
+                :disable="!hasGraph"
+                @click="zoomOut"
+              >
+                <q-tooltip>{{ t('zoomOut') }}</q-tooltip>
+              </q-btn>
+              <q-slider
+                v-model="zoomLevel"
+                class="kg-zoom-toolbar__slider"
+                color="primary"
+                :min="MIN_ZOOM"
+                :max="MAX_ZOOM"
+                :step="ZOOM_STEP"
+                :disable="!hasGraph"
+                :label-value="zoomLevelLabel"
+                label
+                @update:model-value="setZoom"
+              />
+              <div class="kg-zoom-toolbar__value">{{ zoomLevelLabel }}</div>
+              <q-btn
+                flat
+                round
+                dense
+                icon="zoom_in"
+                :aria-label="t('zoomIn')"
+                :disable="!hasGraph"
+                @click="zoomIn"
+              >
+                <q-tooltip>{{ t('zoomIn') }}</q-tooltip>
+              </q-btn>
+              <q-btn
+                flat
+                round
+                dense
+                icon="fit_screen"
+                :aria-label="t('zoomFit')"
+                :disable="!hasGraph"
+                @click="fitGraph"
+              >
+                <q-tooltip>{{ t('zoomFit') }}</q-tooltip>
+              </q-btn>
+              <q-btn
+                flat
+                round
+                dense
+                icon="restart_alt"
+                :aria-label="t('zoomReset')"
+                :disable="!hasGraph"
+                @click="resetZoom"
+              >
+                <q-tooltip>{{ t('zoomReset') }}</q-tooltip>
+              </q-btn>
+            </div>
+          </div>
 
           <!-- Botão flutuante no canto direito -->
           <q-btn
@@ -227,6 +282,15 @@
   const creatingProject = ref(false)
   const filterDistance = ref(1)
   const canUndo = computed(() => history.value.length > 0)
+  const MIN_ZOOM = 0.2
+  const MAX_ZOOM = 3
+  const ZOOM_STEP = 0.1
+  const LAYOUT_PADDING = 56
+  const LAYOUT_MAX_AUTO_ZOOM = 1
+  const LAYOUT_SPACING_FACTOR = 0.85
+  const zoomLevelLabel = computed(() => `${Math.round(zoomLevel.value * 100)}%`)
+  const hasGraph = computed(() => Boolean(cy.value))
+  let activeLayout = null
 
   const metrics = reactive({
     nodes: 0,
@@ -259,6 +323,7 @@
       return
     }
     if (cy.value) {
+      stopActiveLayout()
       cy.value.destroy()
     }
 
@@ -268,14 +333,15 @@
         container: cyContainer.value,
         style: kgview.getStyle(),
         elements: elements.value,
-        layout: { name: selectedLayout.value },
+        layout: getLayoutOptions(selectedLayout.value, { fit: true }),
         zoom: 1,
+        minZoom: MIN_ZOOM,
+        maxZoom: MAX_ZOOM,
+        wheelSensitivity: 0.2,
       })
 
       cy.value.lassoSelectionEnabled(true)
-      cy.value.on('zoom', () => {
-        zoomLevel.value = cy.value.zoom().toFixed(2)
-      })
+      cy.value.on('zoom', syncZoomLevel)
 
       cy.value.on('tap', 'node, edge', (event) => {
         getDetail(event.target)
@@ -315,6 +381,7 @@
 
       cy.value.resize()
       cy.value.zoom(cy.value.zoom())
+      syncZoomLevel()
       cy.value.elements().unselect()
       setupDragDrop()
       saveState()
@@ -327,10 +394,167 @@
     selectedElement.value = kgview.getDetail(e)
   }
 
-  function changeLayout(layout) {
-    if (cy.value) {
-      cy.value.layout({ name: layout }).run()
+  function clampZoom(value) {
+    const parsedValue = Number(value)
+    const nextZoom = Number.isFinite(parsedValue) ? parsedValue : 1
+    return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextZoom))
+  }
+
+  function normalizeZoom(value) {
+    return Number(clampZoom(value).toFixed(2))
+  }
+
+  function getRenderedCenter() {
+    const box = cyContainer.value?.getBoundingClientRect()
+    return {
+      x: box ? box.width / 2 : 0,
+      y: box ? box.height / 2 : 0,
     }
+  }
+
+  function syncZoomLevel() {
+    if (!cy.value) return
+    zoomLevel.value = normalizeZoom(cy.value.zoom())
+  }
+
+  function setZoom(value) {
+    if (!cy.value) return
+
+    const nextZoom = normalizeZoom(value)
+    zoomLevel.value = nextZoom
+    cy.value.zoom({
+      level: nextZoom,
+      renderedPosition: getRenderedCenter(),
+    })
+  }
+
+  function zoomIn() {
+    setZoom(zoomLevel.value + ZOOM_STEP)
+  }
+
+  function zoomOut() {
+    setZoom(zoomLevel.value - ZOOM_STEP)
+  }
+
+  function resetZoom() {
+    if (!cy.value) return
+
+    setZoom(1)
+    cy.value.center(cy.value.elements())
+  }
+
+  function fitGraph() {
+    if (!cy.value) return
+
+    const visibleElements = cy.value.elements()
+    if (visibleElements.empty()) return
+
+    cy.value.fit(visibleElements, 48)
+    syncZoomLevel()
+  }
+
+  function getLayoutOptions(layoutName, overrides = {}) {
+    const baseOptions = {
+      name: layoutName,
+      fit: false,
+      padding: LAYOUT_PADDING,
+      animate: false,
+      spacingFactor: LAYOUT_SPACING_FACTOR,
+      nodeDimensionsIncludeLabels: false,
+    }
+    const optionsByLayout = {
+      cose: {
+        randomize: true,
+        componentSpacing: 28,
+        nodeRepulsion: 1500,
+        nodeOverlap: 6,
+        idealEdgeLength: 46,
+        edgeElasticity: 64,
+        gravity: 1.45,
+        numIter: 750,
+        initialTemp: 240,
+        coolingFactor: 0.95,
+      },
+      'cose-bilkent': {
+        quality: 'default',
+        randomize: true,
+        nodeRepulsion: 3000,
+        idealEdgeLength: 48,
+        edgeElasticity: 0.55,
+        gravity: 0.45,
+        gravityRange: 2.6,
+        tilingPaddingVertical: 8,
+        tilingPaddingHorizontal: 8,
+        animationDuration: 0,
+      },
+      circle: {
+        spacingFactor: 0.78,
+      },
+      concentric: {
+        minNodeSpacing: 34,
+        spacingFactor: 0.8,
+      },
+      random: {
+        spacingFactor: 0.75,
+      },
+    }
+
+    return {
+      ...baseOptions,
+      ...(optionsByLayout[layoutName] || {}),
+      ...overrides,
+    }
+  }
+
+  function stopActiveLayout() {
+    if (!activeLayout) return
+
+    const layout = activeLayout
+    activeLayout = null
+    layout.stop()
+  }
+
+  function fitLayoutView() {
+    if (!cy.value) return
+
+    const visibleElements = cy.value.elements()
+    if (visibleElements.empty()) return
+
+    cy.value.fit(visibleElements, LAYOUT_PADDING)
+
+    if (cy.value.zoom() > LAYOUT_MAX_AUTO_ZOOM) {
+      cy.value.zoom(LAYOUT_MAX_AUTO_ZOOM)
+      cy.value.center(visibleElements)
+    }
+
+    syncZoomLevel()
+  }
+
+  function refreshLayout() {
+    if (!cy.value) return
+
+    stopActiveLayout()
+
+    cy.value.resize()
+
+    const nextLayout = cy.value.layout(
+      getLayoutOptions(selectedLayout.value, {
+        stop: () => {
+          fitLayoutView()
+          if (activeLayout === nextLayout) {
+            activeLayout = null
+          }
+        },
+      }),
+    )
+
+    activeLayout = nextLayout
+    nextLayout.run()
+  }
+
+  function changeLayout(layout) {
+    selectedLayout.value = layout
+    refreshLayout()
     kgview.updateLayout(prj.value.id, layout)
     prjStore.setLayout({ layout })
   }
@@ -338,11 +562,15 @@
   function filterGraph(val) {
     if (!cy.value) return
 
+    stopActiveLayout()
     cy.value.elements().remove()
     cy.value.add(elements.value)
 
     const needle = (val || '').toString().trim().toLowerCase()
-    if (!needle) return
+    if (!needle) {
+      refreshLayout()
+      return
+    }
 
     const matchedNodes = cy.value.nodes().filter((node) => {
       const label = (node.data('label') || '').toString().toLowerCase()
@@ -353,6 +581,7 @@
     const keep = getElementsWithinDistance(matchedNodes, maxDistance)
     const remove = cy.value.elements().difference(keep)
     cy.value.remove(remove)
+    refreshLayout()
   }
 
   function getElementsWithinDistance(nodes, maxDistance) {
@@ -493,9 +722,63 @@
 </script>
 
 <style scoped>
+  .kg-graph-panel {
+    height: 80vh;
+    min-height: 420px;
+    overflow: hidden;
+  }
+
   #cytoscape-container {
     width: 100%;
     height: 100%;
     background-color: #ffffff;
+  }
+
+  .kg-zoom-toolbar {
+    z-index: 2;
+    width: min(360px, calc(100% - 32px));
+    padding: 8px 10px;
+    border: 1px solid rgba(32, 45, 64, 0.14);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 8px 24px rgba(32, 45, 64, 0.16);
+    backdrop-filter: blur(6px);
+  }
+
+  .kg-zoom-toolbar__slider {
+    flex: 1 1 128px;
+    min-width: 96px;
+  }
+
+  .kg-zoom-toolbar__value {
+    width: 44px;
+    color: #344054;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    text-align: right;
+  }
+
+  @media (max-width: 599px) {
+    .kg-graph-panel {
+      height: calc(100vh - 112px);
+      min-height: 360px;
+    }
+
+    .kg-zoom-toolbar {
+      left: 12px;
+      bottom: 12px;
+      width: calc(100% - 24px);
+      margin-left: 0 !important;
+      margin-bottom: 0 !important;
+    }
+
+    .kg-zoom-toolbar__slider {
+      min-width: 80px;
+    }
+
+    .kg-zoom-toolbar__value {
+      display: none;
+    }
   }
 </style>
