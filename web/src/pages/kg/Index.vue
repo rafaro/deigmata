@@ -20,20 +20,6 @@
       <div class="q-pa-md">
         <div class="text-h6">{{ t('detail') }}</div>
         <div class="row">
-          <div id="selectLayout" class="col-10 q-mb-sm">
-            <q-select
-              filled
-              v-model="selectedLayout"
-              :options="optLayout"
-              label="Layout"
-              stack-label
-              dense
-              options-dense
-              emit-value
-              @update:model-value="changeLayout"
-            />
-          </div>
-
           <q-list bordered class="rounded-borders col-12">
             <q-expansion-item
               id="filterexpansion"
@@ -183,6 +169,56 @@
         <div class="kg-graph-panel q-pa-sm bg-grey-2 rounded-borders shadow-2 relative-position">
           <div ref="cyContainer" id="cytoscape-container" class="fit" />
 
+          <div id="selectLayout" class="kg-layout-toolbar absolute-top-left q-ml-md q-mt-md">
+            <div class="row items-center no-wrap q-gutter-xs">
+              <q-select
+                borderless
+                dense
+                options-dense
+                emit-value
+                map-options
+                behavior="menu"
+                class="kg-layout-toolbar__select"
+                popup-content-class="kg-layout-toolbar__menu"
+                v-model="selectedLayout"
+                :options="optLayout"
+                :label="t('layout')"
+                :disable="!hasGraph"
+                @update:model-value="changeLayout"
+              >
+                <template #prepend>
+                  <q-icon :name="selectedLayoutIcon" size="18px" />
+                </template>
+
+                <template #option="scope">
+                  <q-item v-bind="scope.itemProps">
+                    <q-item-section avatar>
+                      <q-icon :name="getLayoutIcon(scope.opt.value)" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>{{ scope.opt.label }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
+
+              <q-separator vertical inset />
+
+              <q-btn
+                flat
+                round
+                dense
+                icon="refresh"
+                :aria-label="t('refreshLayout')"
+                :disable="!hasGraph"
+                :loading="isLayoutRefreshing"
+                @click="refreshLayout"
+              >
+                <q-tooltip>{{ t('refreshLayout') }}</q-tooltip>
+              </q-btn>
+            </div>
+          </div>
+
           <div id="zoomLevel" class="kg-zoom-toolbar absolute-bottom-left q-ml-md q-mb-md">
             <div class="row items-center no-wrap q-gutter-xs">
               <q-btn
@@ -272,6 +308,16 @@
   const FILTER_DEBOUNCE_MS = 300
   const PERSIST_DEBOUNCE_MS = 800
   const MAX_HISTORY_STATES = 10
+  const LAYOUT_ICONS = {
+    grid: 'grid_on',
+    circle: 'radio_button_unchecked',
+    concentric: 'trip_origin',
+    cose: 'hub',
+    'cose-bilkent': 'schema',
+    breadthfirst: 'account_tree',
+    random: 'shuffle',
+    preset: 'place',
+  }
 
   // Layout-specific overrides, kept outside the function so they are not
   // recreated on each getLayoutOptions() call.
@@ -322,6 +368,7 @@
   const listElements = ref([])
   const history = ref([])
   const creatingProject = ref(false)
+  const isLayoutRefreshing = ref(false)
   let activeLayout = null
   let graphIndex = createEmptyGraphIndex()
   let filterTimer = null
@@ -346,6 +393,7 @@
   const canUndo = computed(() => history.value.length > 0)
   const hasGraph = computed(() => Boolean(cy.value))
   const zoomLevelLabel = computed(() => `${Math.round(zoomLevel.value * 100)}%`)
+  const selectedLayoutIcon = computed(() => getLayoutIcon(selectedLayout.value))
 
   // Zoom buttons to the right of the slider
   // (zoom_out stays fixed on the left in the template)
@@ -521,7 +569,12 @@
     if (!activeLayout) return
     const layout = activeLayout
     activeLayout = null
+    isLayoutRefreshing.value = false
     layout.stop()
+  }
+
+  function getLayoutIcon(layoutName) {
+    return LAYOUT_ICONS[layoutName] || 'account_tree'
   }
 
   function fitLayoutView() {
@@ -542,13 +595,18 @@
     stopActiveLayout()
     cy.value.resize()
     const visible = getVisibleElements()
-    if (!visible || visible.empty()) return
+    if (!visible || visible.empty()) {
+      isLayoutRefreshing.value = false
+      return
+    }
 
+    isLayoutRefreshing.value = true
     const nextLayout = visible.layout(
       getLayoutOptions(selectedLayout.value, {
         stop: () => {
           fitLayoutView()
           if (activeLayout === nextLayout) activeLayout = null
+          isLayoutRefreshing.value = false
         },
       })
     )
@@ -1006,6 +1064,22 @@
     backdrop-filter: blur(6px);
   }
 
+  .kg-layout-toolbar {
+    z-index: 2;
+    width: min(300px, calc(100% - 88px));
+    padding: 4px 8px 4px 10px;
+    border: 1px solid rgba(32, 45, 64, 0.14);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 8px 24px rgba(32, 45, 64, 0.16);
+    backdrop-filter: blur(6px);
+  }
+
+  .kg-layout-toolbar__select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
   .kg-zoom-toolbar__slider {
     flex: 1 1 128px;
     min-width: 96px;
@@ -1032,6 +1106,14 @@
       width: calc(100% - 24px);
       margin-left: 0 !important;
       margin-bottom: 0 !important;
+    }
+
+    .kg-layout-toolbar {
+      left: 12px;
+      top: 12px;
+      width: calc(100% - 72px);
+      margin-left: 0 !important;
+      margin-top: 0 !important;
     }
 
     .kg-zoom-toolbar__slider {

@@ -66,6 +66,8 @@ export default {
   filterDistance: 'Filtered node distance',
   filterDistanceStep: 'hop',
   filterDistanceSteps: 'hops',
+  layout: 'Layout',
+  refreshLayout: 'Refresh layout',
   zoom: 'Zoom',
   zoomIn: 'Zoom in',
   zoomOut: 'Zoom out',

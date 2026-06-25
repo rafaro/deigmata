@@ -63,6 +63,8 @@ export default {
   filterDistance: 'Distância dos nodos filtrados',
   filterDistanceStep: 'salto',
   filterDistanceSteps: 'saltos',
+  layout: 'Layout',
+  refreshLayout: 'Reaplicar layout',
   zoom: 'Zoom',
   zoomIn: 'Aproximar',
   zoomOut: 'Afastar',
